@@ -10,6 +10,7 @@ import {
   type AppSettingsPatch,
   getActiveAgentApiKey,
   getKunRuntimeSettings,
+  hasKunRuntimeModelCredentials,
   getModelProviderSettings,
   isKunRuntimeInsecure,
   resolveWriteInlineCompletionApiKey,
@@ -207,7 +208,7 @@ export function SettingsView(): ReactElement {
   useEffect(() => {
     if (!form || initializedCategory.current) return
     initializedCategory.current = true
-    if (!getActiveAgentApiKey(form).trim()) {
+    if (!hasKunRuntimeModelCredentials(form)) {
       setCategory('general')
     }
   }, [form])

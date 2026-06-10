@@ -1300,6 +1300,11 @@ export class ClawRuntime {
 
   private syncWebhook(settings: AppSettingsV1): void {
     const im = settings.claw.im
+    if (!settings.claw.enabled || !im.enabled) {
+      this.closeWebhook()
+      return
+    }
+
     const key = `${im.port}|${im.path}`
     if (this.server && this.serverKey === key) return
     this.closeWebhook()
