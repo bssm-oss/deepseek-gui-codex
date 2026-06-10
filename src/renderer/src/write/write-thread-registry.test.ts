@@ -156,7 +156,7 @@ describe('write-thread-registry', () => {
   it('hydrates Reasonix write-context threads even when the session list reports the default workspace', () => {
     const leaked = {
       ...thread('reasonix-write-thread', '/Users/zxy/.deepseekgui/default_workspace'),
-      title: '[写作上下文] 交互限制：当前 GUI 无法提交 request_user_input'
+      title: '[쓰기 컨텍스트] 상호작용 제한: 현재 GUI는 request_user_input 응답을 제출할 수 없습니다'
     }
 
     const registry = hydrateWriteThreadRegistry(

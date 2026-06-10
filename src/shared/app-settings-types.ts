@@ -9,7 +9,7 @@ export {
   type SandboxMode
 } from '../../kun/src/contracts/policy.js'
 export type UiFontScale = 'small' | 'medium' | 'large'
-export type AppLocale = 'en' | 'zh' | 'ko'
+export type AppLocale = 'en' | 'ko'
 export type ScheduleRunMode = 'agent' | 'plan'
 export type ScheduleKind = 'manual' | 'interval' | 'daily' | 'at'
 export type ScheduleTaskStatus = 'idle' | 'running' | 'success' | 'error'

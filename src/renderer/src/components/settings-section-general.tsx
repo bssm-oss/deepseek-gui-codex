@@ -141,9 +141,8 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
                       value={form.locale}
                       onChange={(e) => update({ locale: e.target.value as AppLocale })}
                     >
-                      <option value="en">English</option>
-                      <option value="zh">简体中文</option>
                       <option value="ko">한국어</option>
+                      <option value="en">English</option>
                     </select>
                   }
                 />

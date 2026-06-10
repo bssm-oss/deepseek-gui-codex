@@ -609,7 +609,7 @@ export function FloatingComposer({
         id: 'plan',
         title: t('slashCommandPlanTitle'),
         description: t('slashCommandPlanDescription'),
-        keywords: ['plan', 'planner', 'planning', '规划', '计划'],
+        keywords: ['plan', 'planner', 'planning', '계획', '플랜'],
         icon: <ListTodo className="h-4 w-4" strokeWidth={1.9} />
       })
     }
@@ -639,7 +639,7 @@ export function FloatingComposer({
             kind: 'skill',
             title: skill.name,
             description: skill.description?.trim() || t('slashSkillDescriptionFallback'),
-            keywords: [skill.id, skill.name, skill.root ?? '', scopeLabel, 'skill', '技能', ...triggers],
+            keywords: [skill.id, skill.name, skill.root ?? '', scopeLabel, 'skill', '스킬', ...triggers],
             icon: <Sparkles className="h-4 w-4" strokeWidth={1.9} />,
             badge: prompt.trim(),
             scopeLabel,
@@ -653,7 +653,7 @@ export function FloatingComposer({
         id: 'goal',
         title: t('slashCommandGoalTitle'),
         description: t('slashCommandGoalDescription'),
-        keywords: ['goal', 'objective', 'target', '目标', '任务'],
+        keywords: ['goal', 'objective', 'target', '목표', '작업'],
         icon: <Target className="h-4 w-4" strokeWidth={1.9} />,
         disabled: goalActionDisabled
       })
@@ -666,7 +666,7 @@ export function FloatingComposer({
           id: 'btw',
           title: t('slashCommandBtwTitle'),
           description: t('slashCommandBtwDescription'),
-          keywords: ['btw', 'by-the-way', 'aside', 'side', '顺便', '旁支'],
+          keywords: ['btw', 'by-the-way', 'aside', 'side', '옆대화', '별도대화'],
           icon: <MessageCircleMore className="h-4 w-4" strokeWidth={1.9} />,
           disabled: !runtimeReady || !activeThreadId
         })
@@ -696,7 +696,7 @@ export function FloatingComposer({
           id: 'fork',
           title: t('slashCommandForkTitle'),
           description: t('slashCommandForkDescription'),
-          keywords: ['fork', 'branch', 'copy', '分叉', '复制'],
+          keywords: ['fork', 'branch', 'copy', '분기', '복사'],
           icon: <GitFork className="h-4 w-4" strokeWidth={1.9} />,
           disabled: threadActionDisabled
         }
@@ -707,7 +707,7 @@ export function FloatingComposer({
           id: 'restore',
           title: t('slashCommandRestoreTitle'),
           description: t('slashCommandRestoreDescription'),
-          keywords: ['restore', 'unarchive', '恢复'],
+          keywords: ['restore', 'unarchive', '복원'],
           icon: <RotateCcw className="h-4 w-4" strokeWidth={1.9} />,
           disabled: threadActionDisabled
         })
@@ -716,7 +716,7 @@ export function FloatingComposer({
           id: 'archive',
           title: t('slashCommandArchiveTitle'),
           description: t('slashCommandArchiveDescription'),
-          keywords: ['archive', 'hide', '归档'],
+          keywords: ['archive', 'hide', '보관'],
           icon: <Archive className="h-4 w-4" strokeWidth={1.9} />,
           disabled: threadActionDisabled
         })

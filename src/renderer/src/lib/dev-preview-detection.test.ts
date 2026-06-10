@@ -38,10 +38,10 @@ describe('dev preview detection', () => {
       user('explain the project'),
       assistant(
         [
-          '开发预览 URL 白名单',
+          '개발 미리보기 URL 허용 목록',
           '',
-          '- 允许的来源包括 `http://localhost:5173` 和 `http://127.0.0.1:5173`。',
-          '- 这里主要是配置说明，不是在提示你打开页面。'
+          '- 허용된 출처에는 `http://localhost:5173` 및 `http://127.0.0.1:5173`이 포함됩니다.',
+          '- 이 내용은 주로 설정 설명이며 페이지를 열라는 안내가 아닙니다.'
         ].join('\n')
       )
     ]
@@ -53,7 +53,7 @@ describe('dev preview detection', () => {
   it('shows a preview card for explicit assistant navigation hints without auto-opening', () => {
     const blocks: ChatBlock[] = [
       user('where is the frontend'),
-      assistant('前端现在运行在 http://localhost:3000 ，你可以直接访问看看。')
+      assistant('프론트엔드는 현재 http://localhost:3000 에서 실행 중이니 바로 접속해 확인할 수 있습니다.')
     ]
 
     expect(extractLatestTurnDevPreviewUrls(blocks)).toEqual(['http://localhost:3000/'])
@@ -76,7 +76,7 @@ describe('dev preview detection', () => {
   it('ignores runtime API URLs even when they are local', () => {
     const blocks: ChatBlock[] = [
       user('how does the runtime work'),
-      assistant('GUI 通过 runtime:request 请求 http://localhost:3000/v1/threads 来拉取线程列表。')
+      assistant('GUI는 runtime:request로 http://localhost:3000/v1/threads 에 요청해 스레드 목록을 가져옵니다.')
     ]
 
     expect(extractLatestTurnDevPreviewUrls(blocks)).toEqual([])

@@ -7,9 +7,9 @@ import {
 } from './plan-path'
 
 describe('plan-path', () => {
-  it('keeps readable Chinese feature names', () => {
-    expect(planFeatureNameFromRequest('做一个登录页')).toBe('做一个登录页')
-    expect(buildPlanRelativePath('做一个登录页')).toBe('.kunsdd/plan/做一个登录页.md')
+  it('keeps readable Korean feature names', () => {
+    expect(planFeatureNameFromRequest('로그인 페이지 만들기')).toBe('로그인-페이지-만들기')
+    expect(buildPlanRelativePath('로그인 페이지 만들기')).toBe('.kunsdd/plan/로그인-페이지-만들기.md')
   })
 
   it('normalizes English spacing and illegal filename characters', () => {

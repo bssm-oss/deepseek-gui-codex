@@ -22,9 +22,8 @@ const themeOptions: { value: ThemePref; icon: typeof Sun; labelKey: string }[] =
   { value: 'dark', icon: Moon, labelKey: 'themeDark' }
 ]
 const languageOptions: { value: AppLocale; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'zh', label: '简体中文' },
-  { value: 'ko', label: '한국어' }
+  { value: 'ko', label: '한국어' },
+  { value: 'en', label: 'English' }
 ]
 const DEEPSEEK_USAGE_URL = 'https://platform.deepseek.com/usage'
 
@@ -201,7 +200,7 @@ export function InitialSetupDialog(): ReactElement {
             <label className={labelClass}>
               {t('language')}
             </label>
-            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[440px]:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[440px]:grid-cols-2">
               {languageOptions.map((option) => {
                 const isActive = form.locale === option.value
                 return (

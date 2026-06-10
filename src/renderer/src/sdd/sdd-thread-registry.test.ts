@@ -71,7 +71,7 @@ describe('sdd-thread-registry', () => {
     expect(isSddAssistantThread({ id: 'thread-sdd-1' }, registry)).toBe(false)
     expect(isSddAssistantThread({
       id: 'thread-sdd-1',
-      title: '下一步: .kunsdd/draft/draft-1/requirement.md'
+      title: '다음 단계: .kunsdd/draft/draft-1/requirement.md'
     }, registry)).toBe(false)
   })
 
@@ -93,7 +93,7 @@ describe('sdd-thread-registry', () => {
 
     expect(isSddAssistantThread({
       id: 'thread-legacy-next',
-      title: '下一步: .kunsdd/draft/draft-1/requirement.md'
+      title: '다음 단계: .kunsdd/draft/draft-1/requirement.md'
     }, registry)).toBe(true)
     expect(isSddAssistantThread({
       id: 'thread-legacy-workspace',
@@ -101,7 +101,7 @@ describe('sdd-thread-registry', () => {
     }, registry)).toBe(true)
     expect(isSddAssistantThread({
       id: 'thread-normal',
-      title: '需求 AI',
+      title: '요구사항 AI',
       workspace: '/tmp/app'
     }, registry)).toBe(false)
   })

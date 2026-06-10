@@ -121,7 +121,7 @@ describe('shell runtime metadata', () => {
         shell: 'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
         args: ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command']
       },
-      'Write-Output "测试"'
+      'Write-Output "테스트"'
     )
 
     expect(args.slice(0, -1)).toEqual([
@@ -133,7 +133,7 @@ describe('shell runtime metadata', () => {
     ])
     const script = Buffer.from(args.at(-1) ?? '', 'base64').toString('utf16le')
     expect(script).toContain('[Console]::OutputEncoding = $OutputEncoding')
-    expect(script).toContain('Write-Output "测试"')
+    expect(script).toContain('Write-Output "테스트"')
   })
 
   it('keeps non-PowerShell command arguments unchanged', () => {

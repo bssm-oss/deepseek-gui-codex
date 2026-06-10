@@ -168,8 +168,8 @@ export function tokenizeWriteRetrievalText(text = ''): string[] {
     if (tokenAllowed(term)) tokens.push(term)
   }
 
-  const hanSegments = source.match(/\p{Script=Han}+/gu) ?? []
-  for (const segment of hanSegments) {
+  const cjkSegments = source.match(/[\p{Script=Han}\p{Script=Hangul}]+/gu) ?? []
+  for (const segment of cjkSegments) {
     const chars = [...segment].slice(0, 120)
     if (chars.length === 1) {
       tokens.push(chars[0])

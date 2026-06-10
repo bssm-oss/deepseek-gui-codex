@@ -1,12 +1,12 @@
 import type { WriteEditorSelectionState } from '../components/write/WriteMarkdownEditor'
 
-export const WRITE_QUOTE_ORIGINAL_START = '[引用原文]'
-export const WRITE_QUOTE_ORIGINAL_END = '[/引用原文]'
-export const WRITE_CONTEXT_HEADING = '[写作上下文]'
-export const WRITE_QUOTE_HEADING = '[引用片段]'
+export const WRITE_QUOTE_ORIGINAL_START = '[인용 원문]'
+export const WRITE_QUOTE_ORIGINAL_END = '[/인용 원문]'
+export const WRITE_CONTEXT_HEADING = '[쓰기 컨텍스트]'
+export const WRITE_QUOTE_HEADING = '[인용 조각]'
 
 const WRITE_ASSISTANT_INTERACTION_RULE =
-  '交互限制: 当前 GUI 无法提交 request_user_input 的 HTTP 响应；需要更多信息时，直接用普通文本向用户提问，不要调用 request_user_input。'
+  '상호작용 제한: 현재 GUI는 request_user_input의 HTTP 응답을 제출할 수 없습니다. 추가 정보가 필요하면 request_user_input을 호출하지 말고 일반 텍스트로 사용자에게 질문하세요.'
 
 export type WriteQuotedSelection = {
   id: string
@@ -62,14 +62,14 @@ export function quotedSelectionFromEditor(
 export function formatWriteQuotedSelectionForPrompt(selection: WriteQuotedSelection): string {
   if (selection.lineStart != null && selection.lineEnd != null) {
     return [
-      `[引用片段] ${selection.sourceTitle}（第${selection.lineStart}-${selection.lineEnd}行，共${selection.charCount}字）路径: ${selection.sourceFilePath}`,
+      `[인용 조각] ${selection.sourceTitle}(라인 ${selection.lineStart}-${selection.lineEnd}, ${selection.charCount}자) 경로: ${selection.sourceFilePath}`,
       WRITE_QUOTE_ORIGINAL_START,
       selection.text,
       WRITE_QUOTE_ORIGINAL_END
     ].join('\n')
   }
   return [
-    `[引用片段] ${selection.sourceTitle}（共${selection.charCount}字）路径: ${selection.sourceFilePath}`,
+    `[인용 조각] ${selection.sourceTitle}(${selection.charCount}자) 경로: ${selection.sourceFilePath}`,
     WRITE_QUOTE_ORIGINAL_START,
     selection.text,
     WRITE_QUOTE_ORIGINAL_END
@@ -111,13 +111,13 @@ export function composeWritePrompt(
   const contextLines: string[] = []
   contextLines.push(WRITE_ASSISTANT_INTERACTION_RULE)
   if (context.workspaceRoot?.trim()) {
-    contextLines.push(`工作空间: ${context.workspaceRoot.trim()}`)
+    contextLines.push(`작업공간: ${context.workspaceRoot.trim()}`)
   }
   if (context.activeFilePath?.trim()) {
-    contextLines.push(`当前文件: ${relativeWritePath(context.workspaceRoot ?? '', context.activeFilePath)}`)
+    contextLines.push(`현재 파일: ${relativeWritePath(context.workspaceRoot ?? '', context.activeFilePath)}`)
   }
   const contextText = contextLines.length > 0
-    ? `[写作上下文]\n${contextLines.join('\n')}`
+    ? `${WRITE_CONTEXT_HEADING}\n${contextLines.join('\n')}`
     : ''
   const quoteText = selections.map(formatWriteQuotedSelectionForPrompt).join('\n\n')
   return [contextText, quoteText, body].filter(Boolean).join('\n\n')
@@ -132,12 +132,12 @@ function parseContextBlock(text: string): WritePromptDisplayContext {
   let activeFile: string | undefined
 
   for (const line of lines) {
-    const workspaceMatch = line.match(/^工作空间:\s*(.+)$/)
+    const workspaceMatch = line.match(/^작업공간:\s*(.+)$/)
     if (workspaceMatch?.[1]) {
       workspaceRoot = workspaceMatch[1].trim()
       continue
     }
-    const fileMatch = line.match(/^当前文件:\s*(.+)$/)
+    const fileMatch = line.match(/^현재 파일:\s*(.+)$/)
     if (fileMatch?.[1]) {
       activeFile = fileMatch[1].trim()
     }
@@ -161,14 +161,15 @@ function splitFirstSection(text: string): { head: string; rest: string } {
 
 function parseQuoteHeader(header: string): Omit<WritePromptDisplayQuote, 'text'> {
   const body = header.replace(WRITE_QUOTE_HEADING, '').trim()
-  const pathSplit = body.match(/^(.*?)\s*路径:\s*(.+)$/)
+  const pathSplit = body.match(/^(.*?)\s*경로:\s*(.+)$/)
   const titleAndMeta = (pathSplit?.[1] ?? body).trim()
   const sourceFilePath = pathSplit?.[2]?.trim()
-  const metaMatch = titleAndMeta.match(/^(.*?)（(?:第(\d+)[-–—](\d+)行，)?共(\d+)字）$/)
+  const metaMatch = titleAndMeta.match(/^(.*?)(?:\(라인\s*(\d+)[-–—](\d+),\s*(\d+)자\)|\((\d+)자\))$/)
   const sourceTitle = (metaMatch?.[1] ?? titleAndMeta).trim()
   const lineStart = metaMatch?.[2] ? Number.parseInt(metaMatch[2], 10) : undefined
   const lineEnd = metaMatch?.[3] ? Number.parseInt(metaMatch[3], 10) : undefined
-  const charCount = metaMatch?.[4] ? Number.parseInt(metaMatch[4], 10) : undefined
+  const charCountText = metaMatch?.[4] ?? metaMatch?.[5]
+  const charCount = charCountText ? Number.parseInt(charCountText, 10) : undefined
 
   return {
     sourceTitle,

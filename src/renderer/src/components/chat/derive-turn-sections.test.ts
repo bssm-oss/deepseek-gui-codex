@@ -30,19 +30,19 @@ function processingSections(input: {
 describe('deriveTurnSections', () => {
   it('renders the final assistant answer as content even when reasoning was persisted after it', () => {
     const result = sections([
-      { kind: 'assistant', id: 'answer', text: '你好！' },
+      { kind: 'assistant', id: 'answer', text: '안녕하세요!' },
       { kind: 'reasoning', id: 'reasoning', text: 'The user greeted me.' }
     ])
 
     expect(result.assistantContentBlocks).toEqual([
-      { kind: 'assistant', id: 'answer', text: '你好！' }
+      { kind: 'assistant', id: 'answer', text: '안녕하세요!' }
     ])
     expect(result.processBlocks.map((block) => block.kind)).toEqual(['reasoning'])
   })
 
   it('uses the last assistant text as final content without duplicating it in process work', () => {
     const result = sections([
-      { kind: 'assistant', id: 'preface', text: '我先检查一下。' },
+        { kind: 'assistant', id: 'preface', text: '먼저 확인해보겠습니다.' },
       {
         kind: 'tool',
         id: 'tool_1',
@@ -53,7 +53,7 @@ describe('deriveTurnSections', () => {
     ])
 
     expect(result.assistantContentBlocks).toEqual([
-      { kind: 'assistant', id: 'preface', text: '我先检查一下。' }
+      { kind: 'assistant', id: 'preface', text: '먼저 확인해보겠습니다.' }
     ])
     expect(result.processBlocks.map((block) => block.kind)).toEqual(['tool'])
   })
@@ -106,20 +106,20 @@ describe('deriveTurnSections', () => {
   it('renders live assistant output inside the active process timeline', () => {
     const result = processingSections({
       liveProcessText: 'private reasoning',
-      liveContent: '这里是正在生成的回答。'
+      liveContent: '여기는 생성 중인 답변입니다.'
     })
 
     expect(result.assistantContentBlocks).toEqual([])
     expect(result.processBlocks).toEqual([
       { kind: 'reasoning', id: 'live-reasoning', text: 'private reasoning' },
-      { kind: 'assistant', id: 'live-assistant', text: '这里是正在生成的回答。' }
+      { kind: 'assistant', id: 'live-assistant', text: '여기는 생성 중인 답변입니다.' }
     ])
   })
 
   it('keeps assistant content in chronological process order while a later tool is still running', () => {
     const result = processingSections({
       blocks: [
-        { kind: 'assistant', id: 'answer', text: '先给你一部分结果。' },
+        { kind: 'assistant', id: 'answer', text: '먼저 일부 결과를 드립니다.' },
         {
           kind: 'tool',
           id: 'tool_1',
@@ -132,7 +132,7 @@ describe('deriveTurnSections', () => {
 
     expect(result.assistantContentBlocks).toEqual([])
     expect(result.processBlocks).toEqual([
-      { kind: 'assistant', id: 'answer', text: '先给你一部分结果。' },
+      { kind: 'assistant', id: 'answer', text: '먼저 일부 결과를 드립니다.' },
       {
         kind: 'tool',
         id: 'tool_1',
@@ -153,7 +153,7 @@ describe('deriveTurnSections', () => {
           status: 'success',
           toolKind: 'tool_call'
         },
-        { kind: 'assistant', id: 'answer', text: '读完了，下一步继续查。' },
+        { kind: 'assistant', id: 'answer', text: '읽었습니다. 다음 단계로 계속 확인하겠습니다.' },
         {
           kind: 'tool',
           id: 'tool_2',

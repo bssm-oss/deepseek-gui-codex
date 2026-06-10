@@ -100,7 +100,7 @@ function genericPenalty(context: InlineCompletionRequestContext, text: string): 
   const trimmed = compactText(text).toLowerCase()
   if (!trimmed) return 0.4
   const startsWithGenericLead =
-    /^(the|this|that|it|they|there|here|we|you|然后|这里|这个|这个时候)/.test(trimmed)
+    /^(the|this|that|it|they|there|here|we|you|그리고|여기|이것|이때)/.test(trimmed)
   if (startsWithGenericLead && !context.hasStructuralContext && !context.endsWithWordChar) {
     return 0.18
   }

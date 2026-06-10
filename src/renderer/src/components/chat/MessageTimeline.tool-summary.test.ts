@@ -144,7 +144,7 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
     const block: ChatBlock = {
       kind: 'user',
       id: 'user_1',
-      text: '为什么图片完全没有识别啊',
+      text: '왜 이미지를 전혀 인식하지 못했나요',
       meta: {
         attachmentIds: ['att_1'],
         attachments: [{
@@ -160,8 +160,8 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
 
     expect(html).toContain('<img')
     expect(html).toContain('src="data:image/png;base64,abc"')
-    expect(html).toContain('为什么图片完全没有识别啊')
-    expect(html).not.toContain('Attachments 1')
+    expect(html).toContain('왜 이미지를 전혀 인식하지 못했나요')
+    expect(html).not.toContain('첨부파일 1')
   })
 
   it('renders managed Claw prompts as the user-visible message', () => {
@@ -216,12 +216,12 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
 
     const html = renderToStaticMarkup(createElement(MessageBubble, { block }))
 
-    expect(html).toContain('Attachments 1')
-    expect(html).toContain('Skills 1')
-    expect(html).toContain('Memories 1')
-    expect(html).toContain('Child agent')
+    expect(html).toContain('첨부파일 1')
+    expect(html).toContain('스킬 1')
+    expect(html).toContain('메모리 1')
+    expect(html).toContain('하위 에이전트')
     expect(html).toContain('research')
-    expect(html).toContain('Sources 1')
+    expect(html).toContain('출처 1')
     expect(html).toContain('https://example.com/kun')
   })
 
@@ -254,12 +254,12 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
       })
     )
 
-    expect(html).toContain('Attachments 1')
-    expect(html).toContain('Skills 1')
-    expect(html).toContain('Memories 1')
-    expect(html).toContain('Child agent')
+    expect(html).toContain('첨부파일 1')
+    expect(html).toContain('스킬 1')
+    expect(html).toContain('메모리 1')
+    expect(html).toContain('하위 에이전트')
     expect(html).toContain('research')
-    expect(html).toContain('Sources 1')
+    expect(html).toContain('출처 1')
   })
 
   it('keeps running tool calls collapsed by default while showing active status', () => {
@@ -280,7 +280,7 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
       })
     )
 
-    expect(html).toContain('Read')
+    expect(html).toContain('읽기')
     expect(html).toContain('/tmp/readme.md')
     expect(html).not.toContain('ds-work-logo')
     expect(html).toContain('ds-shiny-text')
@@ -334,7 +334,7 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
       })
     )
 
-    expect(html).toContain('Used 2 tools')
+    expect(html).toContain('2개 도구 사용')
     expect(html).not.toContain('ds-work-stack')
     expect(html).not.toContain('/tmp/readme.md')
     expect(html).not.toContain('needle')
@@ -376,7 +376,7 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
     )
 
     expect(html).toContain('aria-expanded="true"')
-    expect(html).toContain('Read')
+    expect(html).toContain('읽기')
     expect(html).toContain('/tmp/project/src/app.ts')
     expect(html).not.toContain('running timeline detail should stay collapsed')
   })

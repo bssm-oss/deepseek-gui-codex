@@ -41,10 +41,7 @@ export function normalizeAppSettings(settings: AppSettingsV1): AppSettingsV1 {
   return {
     ...migrated,
     version: 1,
-    locale:
-      maybeSettings.locale === 'zh' || maybeSettings.locale === 'ko'
-        ? maybeSettings.locale
-        : 'en',
+    locale: maybeSettings.locale === 'en' ? 'en' : 'ko',
     theme:
       maybeSettings.theme === 'light' || maybeSettings.theme === 'dark' || maybeSettings.theme === 'system'
         ? maybeSettings.theme

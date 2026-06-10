@@ -20,9 +20,9 @@ afterEach(() => {
 })
 
 describe('thread usage formatting', () => {
-  it('uses RMB for Chinese locales and USD for English locales', () => {
-    expect(formatCost(0.125, 'zh', 0.88)).toBe('￥0.8800')
-    expect(formatCost(0.125, 'zh-CN', 0.88)).toBe('￥0.8800')
+  it('uses KRW for Korean locales and USD for English locales', () => {
+    expect(formatCost(0.125, 'ko', 0.88)).toBe('₩167.20')
+    expect(formatCost(0.125, 'ko-KR', 0.88)).toBe('₩167.20')
     expect(formatCost(0.125, 'en')).toBe('$0.1250')
   })
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// electron nativeImage 是测试对象,只 stub 出 createAppIcon 用到的 4 个方法
+// nativeImage is the unit under test; stub only the four methods createAppIcon uses.
 const createFromBuffer = vi.fn()
 const createFromPath = vi.fn()
 const createFromDataURL = vi.fn()
@@ -15,25 +15,25 @@ vi.mock('electron', () => ({
   }
 }))
 
-// node:fs 也需要 stub —— 用 vi.hoisted 把 mock 函数提到 vi.mock 工厂之前,
-// 这样工厂能拿到同一个引用,后续可以直接通过 fsMock.readFileSync 控制行为
+// node:fs is stubbed too. vi.hoisted keeps the mock functions available before
+// vi.mock factories run, so later assertions can control fsMock.readFileSync.
 const fsMock = vi.hoisted(() => ({
   readFileSync: vi.fn()
 }))
 
 vi.mock('node:fs', () => fsMock)
 
-// PNG 文件头: 89 50 4E 47 0D 0A 1A 0A
+// PNG signature: 89 50 4E 47 0D 0A 1A 0A
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 
 type AppIconModule = typeof import('./app-icon')
 
 /**
- * electron-vite 的 main config 用 Rollup 处理资源,?url import 在 dev 和打包后
- * 都返回 *相对于 main bundle* 的路径(例如 'chunks/deepseek-XXXX.png')。
- * main bundle 输出在 out/main/,所以运行时 __dirname = out/main/。
- * 因此 resolveAppIconPath 只需要做一件事:把相对路径 join 到 baseDir 上。
- * 这个 baseDir 在生产里是 __dirname,在测试里可以显式传入。
+ * electron-vite uses Rollup for main-process assets. ?url imports return paths
+ * relative to the main bundle, such as 'chunks/deepseek-XXXX.png', in both dev
+ * and packaged builds. The main bundle is emitted to out/main/, so runtime
+ * __dirname is out/main/. resolveAppIconPath only needs to join the relative
+ * path to baseDir; production uses __dirname and tests pass a controlled root.
  */
 describe('app icon loader', () => {
   let mod: AppIconModule
@@ -45,7 +45,7 @@ describe('app icon loader', () => {
     createFromDataURL.mockReset()
     createEmpty.mockReset()
     fsMock.readFileSync.mockReset()
-    // 让 mock 在被调用时返回非 undefined 的 NativeImage 占位符
+    // Make the mock return a non-undefined NativeImage placeholder.
     createFromBuffer.mockReturnValue({ isEmpty: () => false } as unknown as Electron.NativeImage)
     createEmpty.mockReturnValue({ isEmpty: () => true } as unknown as Electron.NativeImage)
     mod = await import('./app-icon')
@@ -54,14 +54,14 @@ describe('app icon loader', () => {
   describe('resolveAppIconPath', () => {
     it('joins a relative source with the provided baseDir', () => {
       const resolved = mod.resolveAppIconPath('chunks/deepseek-XXXX.png', '/app/bundle')
-      // 路径分隔符因平台而异(Windows 是 \,其它是 /),用 toMatch 避免硬编码
+      // Path separators differ by platform, so avoid hard-coding them.
       expect(resolved.replace(/\\/g, '/')).toBe('/app/bundle/chunks/deepseek-XXXX.png')
     })
 
     it('strips a leading slash before joining with baseDir (dev mode quirk)', () => {
-      // Vite ?url import 在 dev 模式下会返回 '/chunks/deepseek-XXXX.png'(带前导斜杠)。
-      // 在 Windows 上 path.isAbsolute('/foo') === true,但实际文件并不在当前盘根下,
-      // 而是在 main bundle 输出目录里 —— 必须把前导斜杠剥掉,当作相对路径 join。
+      // Vite ?url imports can return '/chunks/deepseek-XXXX.png' in dev.
+      // On Windows path.isAbsolute('/foo') is true, but the file still lives
+      // under the main bundle output, so strip the leading slash first.
       const resolved = mod.resolveAppIconPath('/chunks/deepseek-XXXX.png', 'd:\\app\\bundle')
       expect(resolved.replace(/\\/g, '/')).toBe('d:/app/bundle/chunks/deepseek-XXXX.png')
     })
@@ -94,9 +94,9 @@ describe('app icon loader', () => {
 
       const icon = mod.createAppIcon('chunks/deepseek-XXXX.png')
 
-      // 关键的反向断言:createFromPath 永远不应被调用 ——
-      // 旧实现 (createFromPath) 既读不了 dev server URL,也读不了 asar,
-      // 才是 Windows 托盘图标消失的根因。
+      // Key negative assertion: createFromPath must never be called.
+      // The old implementation could not read dev server URLs or asar files,
+      // which caused the tray icon to disappear on Windows.
       expect(createFromPath).not.toHaveBeenCalled()
       expect(fsMock.readFileSync).toHaveBeenCalledTimes(1)
       const [calledPath] = fsMock.readFileSync.mock.calls[0] as [string]
@@ -116,7 +116,7 @@ describe('app icon loader', () => {
         throw new Error('ENOENT: no such file')
       })
 
-      // 故意指向一个不存在的路径
+      // Intentionally point at a missing path.
       const icon = mod.createAppIcon('chunks/missing.png')
 
       expect(createEmpty).toHaveBeenCalledTimes(1)
@@ -144,9 +144,9 @@ describe('app icon loader', () => {
     })
 
     it('returns the fallback when both are empty — the function does not silently promote primary', () => {
-      // 两个都空时返回 fallback —— 行为简单可预测;"返回 primary 还是
-      // fallback"功能上等价(都是空),但保持"primary 空就用 fallback"
-      // 这条规则不破例,调用方更清楚在拿什么。
+      // When both inputs are empty, return fallback. It is functionally
+      // equivalent to returning primary here, but preserving the rule makes the
+      // caller's behavior easier to reason about.
       const tray = fakeImage(true)
       const main = fakeImage(true)
       expect(mod.pickTrayIcon(tray, main)).toBe(main)

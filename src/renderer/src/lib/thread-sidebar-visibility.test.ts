@@ -47,7 +47,7 @@ describe('thread-sidebar-visibility', () => {
     ).toBe(true)
     expect(
       shouldInspectThreadForSidebarVisibility(
-        thread({ id: 'thr_279f3fef', title: '新会话' })
+        thread({ id: 'thr_279f3fef', title: '새 대화' })
       )
     ).toBe(false)
   })
@@ -58,15 +58,15 @@ describe('thread-sidebar-visibility', () => {
   })
 
   it('hides fallback entries whose raw prompt came from Claw', () => {
-    expect(shouldHideThreadFromSidebarByBlocks([userBlock('现在时间是23:50', 'claw')])).toBe(true)
+    expect(shouldHideThreadFromSidebarByBlocks([userBlock('현재 시간은 23:50입니다', 'claw')])).toBe(true)
   })
 
   it('filters internal placeholder and empty fallback threads while keeping real threads', async () => {
     const threads = [
       thread({ id: 'thr_internal01', title: '__codex_parent_title__' }),
       thread({ id: 'thr_279f3fef', title: 'thr_279f' }),
-      thread({ id: 'thr_gui0001', title: '新会话' }),
-      thread({ id: 'thr_real0001', title: '修一下侧边栏 bug' })
+      thread({ id: 'thr_gui0001', title: '새 대화' }),
+      thread({ id: 'thr_real0001', title: '사이드바 버그 수정' })
     ]
     const getThreadDetail = vi.fn(async (threadId: string) => {
       if (threadId === 'thr_279f3fef') return { blocks: [] }
@@ -94,7 +94,7 @@ describe('thread-sidebar-visibility', () => {
     const fallbackThread = thread({ id: 'thr_20be8f66', title: 'thr_20be' })
 
     const visible = await filterThreadsForSidebar([fallbackThread], {
-      getThreadDetail: async () => ({ blocks: [userBlock('现在时间是23:50', 'claw')] })
+      getThreadDetail: async () => ({ blocks: [userBlock('현재 시간은 23:50입니다', 'claw')] })
     })
 
     expect(visible).toEqual([])

@@ -34,7 +34,7 @@ describe('markdown live preview', () => {
         'python("hello world")',
         '```',
         '',
-        '呀',
+        '아',
         'nihao'
       ].join('\n')
     })
@@ -65,7 +65,7 @@ describe('markdown live preview', () => {
         'python("hello world")',
         '```',
         '',
-        '呀',
+        '아',
         'nihao'
       ].join('\n')
     })
@@ -84,17 +84,17 @@ describe('markdown live preview', () => {
   it('keeps prose between adjacent language-less fences out of code blocks', () => {
     const state = EditorState.create({
       doc: [
-        '现代文本补全几乎全部基于**自回归语言模型**。',
+        '현대 텍스트 보완은 대부분 **자기회귀 언어 모델**에 기반합니다.',
         '',
         '```',
         'P(w1, w2, ..., wn) = ∏ P(wt | w1, w2, ..., wt-1)',
         '```',
         '',
-        '你好',
+        '안녕하세요',
         '',
         '```',
-        '输入: [我] [爱] [深] [度] [学] [习]',
-        '掩码: 1 0 0 0 0 0',
+        '입력: [나] [는] [딥] [러] [닝] [을] [좋아한다]',
+        '마스크: 1 0 0 0 0 0 0',
         '```'
       ].join('\n')
     })
@@ -115,7 +115,7 @@ describe('markdown live preview', () => {
       },
       {
         language: '',
-        code: '输入: [我] [爱] [深] [度] [学] [习]\n掩码: 1 0 0 0 0 0'
+        code: '입력: [나] [는] [딥] [러] [닝] [을] [좋아한다]\n마스크: 1 0 0 0 0 0 0'
       }
     ])
   })

@@ -20,9 +20,6 @@ describe('applyDocumentLocale', () => {
     applyDocumentLocale('en')
     expect(attributes.get('lang')).toBe('en')
 
-    applyDocumentLocale('zh')
-    expect(attributes.get('lang')).toBe('zh-CN')
-
     applyDocumentLocale('ko')
     expect(attributes.get('lang')).toBe('ko-KR')
   })

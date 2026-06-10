@@ -146,11 +146,11 @@ if (runningClawScheduleMcpServer && process.platform === 'darwin') {
   app.dock.hide()
 }
 
-// 在最早的阶段把 app 名称、AppUserModelId 都设好。
-// Windows 任务栏 / 系统托盘 / 通知中心看到的应用名都来自这里;
-// 设得太晚的话 BrowserWindow title、托盘、IPC 启动时拿到的还是旧的。
-// 抽到 app-identity.ts 是为了让测试可以直接 import,不被 main 的
-// whenReady 副作用污染。
+// Set the app name and AppUserModelId as early as possible.
+// Windows taskbar, tray, and notification labels read the name from here.
+// If this runs late, early BrowserWindow titles, tray labels, and IPC startup
+// code can still observe the old value. app-identity.ts keeps this testable
+// without triggering main-process whenReady side effects.
 configureAppIdentity()
 
 if (!runningClawScheduleMcpServer && process.platform === 'win32') {
@@ -276,13 +276,6 @@ traceStartup('single instance lock checked', {
 })
 
 function trayLabels(locale: AppSettingsV1['locale']): { show: string; quit: string; tooltip: string } {
-  if (locale === 'zh') {
-    return {
-      show: '显示 DeepSeek GUI',
-      quit: '退出',
-      tooltip: 'DeepSeek GUI'
-    }
-  }
   if (locale === 'ko') {
     return {
       show: 'DeepSeek GUI 보기',
@@ -345,8 +338,8 @@ function syncTray(settings: AppSettingsV1): void {
   }
 
   if (!tray) {
-    // Tray 优先用专门的托盘图(在 16x16/24x24 任务栏尺寸下更清晰的剪影);
-    // 托盘图加载失败时回退到主应用图,这样不会看到 electron 默认占位。
+    // Prefer the dedicated tray icon because it remains clearer at 16x16/24x24.
+    // Fall back to the main app icon so Electron's default placeholder is never shown.
     const traySource = pickTrayIcon(trayIcon, appIcon)
     tray = new Tray(traySource.isEmpty() ? nativeImage.createEmpty() : traySource)
     tray.on('click', revealMainWindow)

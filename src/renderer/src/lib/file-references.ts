@@ -72,12 +72,12 @@ const PATH_WITH_SEPARATOR = new RegExp(
   String.raw`${PATH_PREFIX_BOUNDARY}(?:~|\/|\.{1,2}\/|[A-Za-z]:[\\/]|[\w@.-]+[\\/])${PATH_CHARS}*?\.(?:${EXTENSIONS})${PATH_END}`,
   'giu'
 )
-const LINE_SUFFIX = /(?::(\d+)(?::(\d+))?|#L(\d+)(?:-L\d+)?|\s*[（(](?:line|lines)\s+(\d+)[）)]|\s*[（(]第\s*(\d+)\s*行[）)]|\s+line\s+(\d+)|\s+第\s*(\d+)\s*行)/iy
+const LINE_SUFFIX = /(?::(\d+)(?::(\d+))?|#L(\d+)(?:-L\d+)?|\s*[（(](?:line|lines|줄)\s+(\d+)[）)]|\s+line\s+(\d+)|\s+(\d+)\s*줄)/iy
 const TRAILING_PUNCTUATION = /[.,;!?]+$/
 const BLOCKED_PARENTS = new Set(['a', 'code', 'pre', 'script', 'style', 'textarea'])
 
 function lineFromSuffix(match: RegExpExecArray): { line?: number; column?: number } {
-  const lineText = match[1] ?? match[3] ?? match[4] ?? match[5] ?? match[6] ?? match[7]
+  const lineText = match[1] ?? match[3] ?? match[4] ?? match[5] ?? match[6]
   const columnText = match[2]
   const line = lineText ? Number.parseInt(lineText, 10) : undefined
   const column = columnText ? Number.parseInt(columnText, 10) : undefined

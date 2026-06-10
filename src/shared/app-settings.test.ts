@@ -188,6 +188,15 @@ describe('app locale settings', () => {
 
     expect(normalized.locale).toBe('ko')
   })
+
+  it('falls back unsupported locale settings to Korean', () => {
+    const normalized = normalizeAppSettings({
+      ...settings(),
+      locale: 'fr'
+    } as unknown as AppSettingsV1)
+
+    expect(normalized.locale).toBe('ko')
+  })
 })
 
 describe('keyboard shortcut settings', () => {
@@ -391,7 +400,7 @@ describe('legacy Kun defaults migration', () => {
   it('normalizes old master settings without an agents.kun envelope', () => {
     const normalized = normalizeAppSettings({
       version: 1,
-      locale: 'zh',
+      locale: 'ko',
       theme: 'dark',
       uiFontScale: 'small',
       agentProvider: 'deepseek-runtime',
