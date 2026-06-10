@@ -23,8 +23,10 @@ function settings(): AppSettingsV1 {
         {
           id: 'custom',
           name: 'Custom Provider',
+          authType: 'api-key',
           apiKey: 'sk-custom',
           baseUrl: 'https://custom.example/v1',
+          codexAuthPath: '',
           models: ['custom-model']
         }
       ]

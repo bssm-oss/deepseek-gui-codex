@@ -93,6 +93,24 @@ export function parseServeOptions(
             env.DEEPSEEK_BASE_URL ??
             configServe.baseUrl ??
             DEFAULT_SERVE_OPTIONS.baseUrl,
+    modelProviderAuthType:
+      raw['model-provider-auth-type'] === 'codex-oauth' || raw.modelProviderAuthType === 'codex-oauth'
+        ? 'codex-oauth'
+        : raw['model-provider-auth-type'] === 'api-key' || raw.modelProviderAuthType === 'api-key'
+          ? 'api-key'
+          : env.KUN_MODEL_PROVIDER_AUTH_TYPE === 'codex-oauth' || env.KUN_MODEL_AUTH_TYPE === 'codex-oauth'
+            ? 'codex-oauth'
+            : env.KUN_MODEL_PROVIDER_AUTH_TYPE === 'api-key' || env.KUN_MODEL_AUTH_TYPE === 'api-key'
+              ? 'api-key'
+              : configServe.modelProviderAuthType ?? DEFAULT_SERVE_OPTIONS.modelProviderAuthType,
+    codexAuthPath:
+      typeof raw['codex-auth-path'] === 'string'
+        ? raw['codex-auth-path']
+        : typeof raw.codexAuthPath === 'string'
+          ? raw.codexAuthPath
+          : env.KUN_CODEX_AUTH_PATH ??
+            configServe.codexAuthPath ??
+            DEFAULT_SERVE_OPTIONS.codexAuthPath,
     model:
       typeof raw.model === 'string'
         ? raw.model
@@ -152,6 +170,9 @@ Options:
   --runtime-token <token>  Bearer token for /v1/* requests
   --api-key <key>          DeepSeek-compatible API key
   --base-url <url>         DeepSeek-compatible base URL
+  --model-provider-auth-type <type>
+                           api-key | codex-oauth (default api-key)
+  --codex-auth-path <path> Codex auth.json path for codex-oauth
   --model <model>          Default model id
   --approval-policy <p>    on-request | untrusted | never | auto | suggest
   --sandbox-mode <mode>    read-only | workspace-write | danger-full-access | external-sandbox

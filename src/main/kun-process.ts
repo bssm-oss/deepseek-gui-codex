@@ -229,6 +229,8 @@ export async function startKunChild(settings: AppSettingsV1): Promise<void> {
     port: runtime.port,
     dataDir,
     baseUrl: runtime.baseUrl,
+    modelProviderAuthType: runtime.modelProviderAuthType,
+    codexAuthPath: runtime.codexAuthPath,
     model: runtime.model,
     approvalPolicy: runtime.approvalPolicy,
     sandboxMode: runtime.sandboxMode,
@@ -240,7 +242,11 @@ export async function startKunChild(settings: AppSettingsV1): Promise<void> {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
       KUN_RUNTIME_TOKEN: runtime.runtimeToken,
-      DEEPSEEK_API_KEY: runtime.apiKey || process.env.DEEPSEEK_API_KEY || ''
+      KUN_MODEL_PROVIDER_AUTH_TYPE: runtime.modelProviderAuthType,
+      KUN_CODEX_AUTH_PATH: runtime.codexAuthPath,
+      DEEPSEEK_API_KEY: runtime.modelProviderAuthType === 'codex-oauth'
+        ? ''
+        : runtime.apiKey || process.env.DEEPSEEK_API_KEY || ''
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false

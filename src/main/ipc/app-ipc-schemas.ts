@@ -151,7 +151,7 @@ export const runtimeRequestPayloadSchema = z
   })
   .strict()
 
-const localeSchema = z.enum(['en', 'zh'])
+const localeSchema = z.enum(['en', 'zh', 'ko'])
 const themeSchema = z.enum(['system', 'light', 'dark'])
 const uiFontScaleSchema = z.enum(['small', 'medium', 'large'])
 const approvalPolicySchema = z.enum(['on-request', 'untrusted', 'never', 'auto', 'suggest'])
@@ -159,6 +159,7 @@ const sandboxModeSchema = z.enum(['read-only', 'workspace-write', 'danger-full-a
 const mcpSearchModeSchema = z.enum(['direct', 'search', 'auto'])
 const kunStorageBackendSchema = z.enum(['hybrid', 'file'])
 const kunCompactionSummaryModeSchema = z.enum(['heuristic', 'model'])
+const modelProviderAuthTypeSchema = z.enum(['api-key', 'codex-oauth'])
 const clawRunModeSchema = z.enum(['agent', 'plan'])
 const clawImProviderSchema = z.enum(['feishu', 'weixin'])
 const clawScheduleKindSchema = z.enum(['manual', 'interval', 'daily', 'at'])
@@ -176,8 +177,10 @@ const modelProviderPatchSchema = z.object({
   providers: z.array(z.object({
     id: z.string().trim().min(1).max(64).optional(),
     name: z.string().trim().min(1).max(80).optional(),
+    authType: modelProviderAuthTypeSchema.optional(),
     apiKey: z.string().max(MAX_BODY_BYTES).optional(),
     baseUrl: z.string().trim().max(MAX_URL_LENGTH).optional(),
+    codexAuthPath: defaultPathSchema,
     models: z.array(z.string().trim().min(1).max(128)).max(200).optional()
   }).strict()).max(50).optional()
 }).strict()
@@ -189,6 +192,8 @@ const kunRuntimePatchSchema = z.object({
   apiKey: z.string().max(MAX_BODY_BYTES).optional(),
   baseUrl: z.string().trim().max(MAX_URL_LENGTH).optional(),
   providerId: z.string().trim().max(64).optional(),
+  modelProviderAuthType: modelProviderAuthTypeSchema.optional(),
+  codexAuthPath: defaultPathSchema,
   runtimeToken: z.string().max(MAX_BODY_BYTES).optional(),
   dataDir: defaultPathSchema,
   model: z.string().trim().min(1).max(128).optional(),
