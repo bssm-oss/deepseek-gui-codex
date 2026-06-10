@@ -9,6 +9,9 @@ import {
   hasKunRuntimeModelCredentials,
   resolveKunRuntimeSettings,
   CODEX_OAUTH_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
   type AppSettingsV1
 } from './app-settings'
 
@@ -54,6 +57,22 @@ function settings(): AppSettingsV1 {
 }
 
 describe('model provider settings', () => {
+  it('seeds DeepSeek, local Gemma, and ChatGPT providers by default', () => {
+    const provider = defaultModelProviderSettings()
+
+    expect(provider.providers.map((item) => item.id)).toEqual([
+      'deepseek',
+      OLLAMA_MODEL_PROVIDER_ID,
+      CODEX_OAUTH_MODEL_PROVIDER_ID
+    ])
+    expect(provider.providers.find((item) => item.id === OLLAMA_MODEL_PROVIDER_ID)).toMatchObject({
+      authType: 'none',
+      apiKey: '',
+      baseUrl: DEFAULT_OLLAMA_BASE_URL,
+      models: [DEFAULT_OLLAMA_MODEL]
+    })
+  })
+
   it('resolves Kun runtime credentials from the selected provider', () => {
     const runtime = resolveKunRuntimeSettings(settings())
 
@@ -73,6 +92,26 @@ describe('model provider settings', () => {
       codexAuthPath: '~/.codex/auth.json'
     }
 
+    expect(hasKunRuntimeModelCredentials(next)).toBe(true)
+  })
+
+  it('treats local Ollama Gemma as configured without an API key', () => {
+    const next = settings()
+    next.provider.apiKey = ''
+    next.provider.baseUrl = 'https://api.deepseek.com'
+    next.provider.providers = defaultModelProviderSettings().providers
+    next.agents.kun = {
+      ...defaultKunRuntimeSettings(),
+      providerId: OLLAMA_MODEL_PROVIDER_ID,
+      model: DEFAULT_OLLAMA_MODEL,
+      modelProviderAuthType: 'none',
+      baseUrl: ''
+    }
+    const runtime = resolveKunRuntimeSettings(next)
+
+    expect(runtime.modelProviderAuthType).toBe('none')
+    expect(runtime.apiKey).toBe('')
+    expect(runtime.baseUrl).toBe(DEFAULT_OLLAMA_BASE_URL)
     expect(hasKunRuntimeModelCredentials(next)).toBe(true)
   })
 })

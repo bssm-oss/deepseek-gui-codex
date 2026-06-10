@@ -253,7 +253,10 @@ export function mergeKunRuntimeSettings(
   return {
     ...current,
     ...(patch ?? {}),
-    modelProviderAuthType: patch?.modelProviderAuthType === 'codex-oauth' || patch?.modelProviderAuthType === 'api-key'
+    modelProviderAuthType:
+      patch?.modelProviderAuthType === 'codex-oauth' ||
+      patch?.modelProviderAuthType === 'api-key' ||
+      patch?.modelProviderAuthType === 'none'
       ? patch.modelProviderAuthType
       : current.modelProviderAuthType,
     codexAuthPath: typeof patch?.codexAuthPath === 'string' ? patch.codexAuthPath.trim() : current.codexAuthPath,

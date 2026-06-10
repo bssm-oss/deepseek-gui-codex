@@ -313,6 +313,23 @@ describe('cli', () => {
     expect(parsed.storage.backend).toBe('file')
   })
 
+  it('parses no-auth local model provider mode', () => {
+    const parsed = parseServeOptions([
+      '--data-dir',
+      '/tmp/kun',
+      '--base-url',
+      'http://127.0.0.1:11434',
+      '--model',
+      'gemma4:12b',
+      '--model-provider-auth-type',
+      'none'
+    ])
+
+    expect(parsed.baseUrl).toBe('http://127.0.0.1:11434')
+    expect(parsed.model).toBe('gemma4:12b')
+    expect(parsed.modelProviderAuthType).toBe('none')
+  })
+
   it('loads serve and context compaction settings from an explicit config file', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'kun-config-'))
     try {

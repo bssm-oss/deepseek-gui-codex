@@ -7,6 +7,8 @@ import {
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_DEEPSEEK_BASE_URL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_BASE_URL,
+  OLLAMA_MODEL_PROVIDER_ID,
   getActiveAgentApiKey,
   getModelProviderSettings,
   normalizeAppSettings,
@@ -19,7 +21,7 @@ import {
 import { rendererRuntimeClient } from '../agent/runtime-client'
 import { applyTheme } from '../lib/apply-theme'
 import { useChatStore } from '../store/chat-store'
-import { Eye, EyeOff, ExternalLink, KeyRound, ShieldCheck, Sparkles, Sun, Moon, Monitor, X } from 'lucide-react'
+import { Cpu, Eye, EyeOff, ExternalLink, KeyRound, ShieldCheck, Sparkles, Sun, Moon, Monitor, X } from 'lucide-react'
 
 type ThemePref = AppSettingsV1['theme']
 type SetupFormPatch = AppSettingsPatch
@@ -50,14 +52,11 @@ export function InitialSetupDialog(): ReactElement {
   const formRef = useRef<AppSettingsV1 | null>(null)
   const isPreview = initialSetupMode === 'preview'
   const providerSettings = form ? getModelProviderSettings(form) : null
-  const selectedAuthType: ModelProviderAuthTypeV1 =
-    form?.agents.kun.providerId === CODEX_OAUTH_MODEL_PROVIDER_ID ? 'codex-oauth' : 'api-key'
-  const selectedProviderId = selectedAuthType === 'codex-oauth'
-    ? CODEX_OAUTH_MODEL_PROVIDER_ID
-    : DEFAULT_MODEL_PROVIDER_ID
+  const selectedProviderId = form?.agents.kun.providerId?.trim() || DEFAULT_MODEL_PROVIDER_ID
   const selectedProvider = providerSettings?.providers.find((provider) =>
     provider.id === selectedProviderId
   ) ?? null
+  const selectedAuthType: ModelProviderAuthTypeV1 = selectedProvider?.authType ?? 'api-key'
 
   const setCurrentForm = (next: AppSettingsV1 | null): void => {
     formRef.current = next
@@ -147,6 +146,8 @@ export function InitialSetupDialog(): ReactElement {
     if (!current) return
     const currentAuthType = current.agents.kun.providerId === CODEX_OAUTH_MODEL_PROVIDER_ID
       ? 'codex-oauth'
+      : current.agents.kun.providerId === OLLAMA_MODEL_PROVIDER_ID
+        ? 'none'
       : 'api-key'
     if (currentAuthType === 'api-key' && !getActiveAgentApiKey(current).trim()) {
       setError(t('firstRunApiKeyValidation'))
@@ -280,7 +281,7 @@ export function InitialSetupDialog(): ReactElement {
             <label className={labelClass}>
               {t('firstRunProviderTitle')}
             </label>
-            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[560px]:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[560px]:grid-cols-3">
               <button
                 type="button"
                 onClick={() => handleAuthTypeChange('api-key')}
@@ -293,6 +294,21 @@ export function InitialSetupDialog(): ReactElement {
                   </span>
                   <span className="text-[12.5px] leading-5 text-slate-500 dark:text-slate-400">
                     {t('firstRunProviderDeepseekDesc')}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAuthTypeChange('none')}
+                className={providerChoiceClass(selectedAuthType === 'none')}
+              >
+                <Cpu className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                <span className="grid min-w-0 gap-1">
+                  <span className="text-[14px] font-semibold leading-5">
+                    {t('firstRunProviderGemma')}
+                  </span>
+                  <span className="text-[12.5px] leading-5 text-slate-500 dark:text-slate-400">
+                    {t('firstRunProviderGemmaDesc')}
                   </span>
                 </span>
               </button>
@@ -316,7 +332,11 @@ export function InitialSetupDialog(): ReactElement {
 
           <div className="space-y-2.5 sm:space-y-3.5">
             <label className={labelClass}>
-              {selectedAuthType === 'codex-oauth' ? t('modelProviderCodexAuthPath') : t('apiKey')}
+              {selectedAuthType === 'codex-oauth'
+                ? t('modelProviderCodexAuthPath')
+                : selectedAuthType === 'none'
+                  ? t('modelProviderAuthNone')
+                  : t('apiKey')}
             </label>
             {selectedAuthType === 'codex-oauth' ? (
               <>
@@ -337,6 +357,10 @@ export function InitialSetupDialog(): ReactElement {
                   {t('firstRunCodexAuthHint')}
                 </div>
               </>
+            ) : selectedAuthType === 'none' ? (
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-[13px] leading-6 text-slate-500 dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-400">
+                {t('firstRunGemmaHint')}
+              </div>
             ) : (
               <>
                 <div className="relative">
@@ -388,7 +412,9 @@ export function InitialSetupDialog(): ReactElement {
               onChange={(e) => updateModelProvider(selectedProviderId, { baseUrl: e.target.value })}
               placeholder={selectedAuthType === 'codex-oauth'
                 ? DEFAULT_CODEX_OAUTH_BASE_URL
-                : DEFAULT_DEEPSEEK_BASE_URL}
+                : selectedAuthType === 'none'
+                  ? DEFAULT_OLLAMA_BASE_URL
+                  : DEFAULT_DEEPSEEK_BASE_URL}
               className={fieldClass}
             />
           </div>

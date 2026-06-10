@@ -12,11 +12,14 @@ import {
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
   DEFAULT_WRITE_INLINE_COMPLETION_MODEL,
   DEFAULT_WRITE_INLINE_LONG_COMPLETION_MAX_TOKENS,
   DEFAULT_KUN_DATA_DIR,
+  OLLAMA_MODEL_PROVIDER_ID,
   WRITE_INLINE_COMPLETION_MODEL_IDS,
   defaultModelProviderSettings,
   isKunRuntimeInsecure
@@ -179,6 +182,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
     activeApiKey,
     update,
     updateKun,
+    selectModelProvider,
     updateSharedCredential,
     sharedApiKey,
     sharedBaseUrl,
@@ -426,10 +430,20 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
           codexAuthPath: activeProvider.codexAuthPath.trim() || DEFAULT_CODEX_AUTH_PATH,
           models: activeProvider.models.length > 0 ? activeProvider.models : [DEFAULT_CODEX_OAUTH_MODEL]
         }
-      : {
-          authType,
-          codexAuthPath: ''
-        })
+      : authType === 'none'
+        ? {
+            authType,
+            apiKey: '',
+            baseUrl: activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
+              ? activeProvider.baseUrl.trim() || DEFAULT_OLLAMA_BASE_URL
+              : activeProvider.baseUrl,
+            codexAuthPath: '',
+            models: activeProvider.models.length > 0 ? activeProvider.models : [DEFAULT_OLLAMA_MODEL]
+          }
+        : {
+            authType,
+            codexAuthPath: ''
+          })
   }
   const addModelProvider = (): void => {
     const baseId = 'custom-provider'
@@ -514,7 +528,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                           <select
                             className={selectControlClass}
                             value={activeProvider?.id ?? DEFAULT_MODEL_PROVIDER_ID}
-                            onChange={(e) => updateKun({ providerId: e.target.value })}
+                            onChange={(e) => selectModelProvider(e.target.value)}
                           >
                             {modelProviders.map((item) => (
                               <option key={item.id} value={item.id}>{item.name}</option>
@@ -557,6 +571,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                                 onChange={(e) => updateModelProviderAuthType(e.target.value as ModelProviderAuthTypeV1)}
                               >
                                 <option value="api-key">{t('modelProviderAuthApiKey')}</option>
+                                <option value="none">{t('modelProviderAuthNone')}</option>
                                 <option value="codex-oauth">{t('modelProviderAuthCodexOAuth')}</option>
                               </select>
                             </label>
@@ -575,6 +590,10 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                                   {t('modelProviderCodexAuthPathDesc')}
                                 </span>
                               </label>
+                            ) : activeProvider.authType === 'none' ? (
+                              <div className="rounded-xl border border-ds-border-muted bg-ds-main/50 px-3 py-2 text-[12.5px] leading-5 text-ds-muted">
+                                {t('modelProviderNoApiKeyDesc')}
+                              </div>
                             ) : (
                               <label className="grid gap-1.5 text-[12px] font-semibold text-ds-muted">
                                 {t('modelProviderApiKey')}
@@ -613,7 +632,8 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                               />
                             </label>
                             {activeProvider.id !== DEFAULT_MODEL_PROVIDER_ID &&
-                            activeProvider.id !== CODEX_OAUTH_MODEL_PROVIDER_ID ? (
+                            activeProvider.id !== CODEX_OAUTH_MODEL_PROVIDER_ID &&
+                            activeProvider.id !== OLLAMA_MODEL_PROVIDER_ID ? (
                               <button
                                 type="button"
                                 onClick={() => removeModelProvider(activeProvider.id)}
@@ -646,6 +666,8 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                         <p className="mt-2 text-[12px] text-ds-muted">
                           {kun.apiKey.trim()
                             ? t('kunApiKeyOverride')
+                            : activeProvider?.authType === 'none' || activeProvider?.authType === 'codex-oauth'
+                              ? t('kunApiKeyNotRequired')
                             : sharedApiKey.trim()
                               ? t('kunApiKeyInherited')
                               : t('kunApiKeyMissing')}

@@ -4,7 +4,12 @@ import { useTranslation } from 'react-i18next'
 import {
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_CODEX_AUTH_PATH,
+  CODEX_OAUTH_MODEL_PROVIDER_ID,
+  DEFAULT_CODEX_OAUTH_MODEL,
+  DEFAULT_KUN_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
   kunSettingsPatch,
   DEFAULT_WRITE_WORKSPACE_ROOT,
   type AppSettingsPatch,
@@ -582,7 +587,7 @@ export function SettingsView(): ReactElement {
   const activeApiKey = getActiveAgentApiKey(form)
   const activeProviderId = kun.providerId?.trim() || DEFAULT_MODEL_PROVIDER_ID
   const activeProvider = provider.providers.find((item) => item.id === activeProviderId) ?? provider.providers[0]
-  const activeProviderRequiresApiKey = activeProvider?.authType !== 'codex-oauth'
+  const activeProviderRequiresApiKey = activeProvider?.authType === 'api-key'
   const sharedApiKey = activeProviderRequiresApiKey ? activeProvider?.apiKey ?? provider.apiKey : ''
   const sharedBaseUrl = activeProvider?.baseUrl ?? provider.baseUrl
   const sharedCodexAuthPath = activeProvider?.codexAuthPath ?? DEFAULT_CODEX_AUTH_PATH
@@ -627,6 +632,37 @@ export function SettingsView(): ReactElement {
 
   const updateKun = (patch: Partial<AppSettingsV1['agents']['kun']>): void => {
     update({ agents: kunSettingsPatch(patch) })
+  }
+
+  const defaultModelForProvider = (profile: ModelProviderProfileV1 | undefined): string => {
+    if (!profile) return DEFAULT_KUN_MODEL
+    if (profile.id === CODEX_OAUTH_MODEL_PROVIDER_ID) {
+      return profile.models.includes(DEFAULT_CODEX_OAUTH_MODEL)
+        ? DEFAULT_CODEX_OAUTH_MODEL
+        : profile.models[0] ?? DEFAULT_CODEX_OAUTH_MODEL
+    }
+    if (profile.id === OLLAMA_MODEL_PROVIDER_ID) {
+      return profile.models.includes(DEFAULT_OLLAMA_MODEL)
+        ? DEFAULT_OLLAMA_MODEL
+        : profile.models[0] ?? DEFAULT_OLLAMA_MODEL
+    }
+    if (profile.id === DEFAULT_MODEL_PROVIDER_ID) return DEFAULT_KUN_MODEL
+    return profile.models[0] ?? DEFAULT_KUN_MODEL
+  }
+
+  const selectModelProvider = (providerId: string): void => {
+    const profile = provider.providers.find((item) => item.id === providerId)
+    if (!profile) return
+    updateKun({
+      providerId,
+      model: defaultModelForProvider(profile),
+      apiKey: '',
+      baseUrl: '',
+      modelProviderAuthType: profile.authType,
+      codexAuthPath: profile.authType === 'codex-oauth'
+        ? profile.codexAuthPath.trim() || DEFAULT_CODEX_AUTH_PATH
+        : ''
+    })
   }
 
   const pickWorkspace = async (): Promise<void> => {
@@ -738,6 +774,7 @@ export function SettingsView(): ReactElement {
     activeApiKey,
     update,
     updateKun,
+    selectModelProvider,
     updateSharedCredential,
     sharedApiKey,
     sharedBaseUrl,

@@ -94,15 +94,12 @@ export function parseServeOptions(
             configServe.baseUrl ??
             DEFAULT_SERVE_OPTIONS.baseUrl,
     modelProviderAuthType:
-      raw['model-provider-auth-type'] === 'codex-oauth' || raw.modelProviderAuthType === 'codex-oauth'
-        ? 'codex-oauth'
-        : raw['model-provider-auth-type'] === 'api-key' || raw.modelProviderAuthType === 'api-key'
-          ? 'api-key'
-          : env.KUN_MODEL_PROVIDER_AUTH_TYPE === 'codex-oauth' || env.KUN_MODEL_AUTH_TYPE === 'codex-oauth'
-            ? 'codex-oauth'
-            : env.KUN_MODEL_PROVIDER_AUTH_TYPE === 'api-key' || env.KUN_MODEL_AUTH_TYPE === 'api-key'
-              ? 'api-key'
-              : configServe.modelProviderAuthType ?? DEFAULT_SERVE_OPTIONS.modelProviderAuthType,
+      modelProviderAuthTypeFromValue(raw['model-provider-auth-type']) ??
+      modelProviderAuthTypeFromValue(raw.modelProviderAuthType) ??
+      modelProviderAuthTypeFromValue(env.KUN_MODEL_PROVIDER_AUTH_TYPE) ??
+      modelProviderAuthTypeFromValue(env.KUN_MODEL_AUTH_TYPE) ??
+      configServe.modelProviderAuthType ??
+      DEFAULT_SERVE_OPTIONS.modelProviderAuthType,
     codexAuthPath:
       typeof raw['codex-auth-path'] === 'string'
         ? raw['codex-auth-path']
@@ -171,7 +168,7 @@ Options:
   --api-key <key>          DeepSeek-compatible API key
   --base-url <url>         DeepSeek-compatible base URL
   --model-provider-auth-type <type>
-                           api-key | codex-oauth (default api-key)
+                           api-key | codex-oauth | none (default api-key)
   --codex-auth-path <path> Codex auth.json path for codex-oauth
   --model <model>          Default model id
   --approval-policy <p>    on-request | untrusted | never | auto | suggest
@@ -298,4 +295,10 @@ function envBoolean(value: string | undefined): boolean | undefined {
     return false
   }
   return true
+}
+
+function modelProviderAuthTypeFromValue(
+  value: unknown
+): ServeOptions['modelProviderAuthType'] | undefined {
+  return value === 'api-key' || value === 'codex-oauth' || value === 'none' ? value : undefined
 }

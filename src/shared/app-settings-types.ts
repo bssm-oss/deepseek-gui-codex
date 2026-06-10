@@ -23,6 +23,7 @@ export type ClawModel = ScheduleModel
 
 export const DEFAULT_DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
 export const DEFAULT_CODEX_OAUTH_BASE_URL = 'https://chatgpt.com/backend-api/codex'
+export const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
 export const DEFAULT_CODEX_AUTH_PATH = '~/.codex/auth.json'
 export const DEFAULT_CLAW_MODEL = 'auto'
 export const CLAW_MODEL_IDS = ['auto', 'deepseek-v4-pro', 'deepseek-v4-flash'] as const
@@ -35,6 +36,7 @@ export const DEFAULT_WRITE_WORKSPACE_ROOT = '~/.deepseekgui/write_workspace'
 export const DEFAULT_KUN_DATA_DIR = '~/.deepseekgui/kun'
 export const DEFAULT_KUN_MODEL = 'deepseek-v4-pro'
 export const DEFAULT_CODEX_OAUTH_MODEL = 'gpt-5.5'
+export const DEFAULT_OLLAMA_MODEL = 'gemma4:12b'
 export const DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL = 'https://api.deepseek.com/beta'
 export const DEFAULT_WRITE_INLINE_COMPLETION_MODEL = 'deepseek-v4-flash'
 export const WRITE_INLINE_COMPLETION_MODEL_IDS = ['deepseek-v4-pro', 'deepseek-v4-flash'] as const
@@ -48,7 +50,8 @@ export const DEFAULT_KUN_PORT = 8899
 export const DEFAULT_WEIXIN_BRIDGE_RPC_URL = 'http://127.0.0.1:18790/api/v1/admin/rpc'
 export const DEFAULT_MODEL_PROVIDER_ID = 'deepseek'
 export const CODEX_OAUTH_MODEL_PROVIDER_ID = 'codex-oauth'
-export type ModelProviderAuthTypeV1 = 'api-key' | 'codex-oauth'
+export const OLLAMA_MODEL_PROVIDER_ID = 'ollama-gemma'
+export type ModelProviderAuthTypeV1 = 'api-key' | 'codex-oauth' | 'none'
 export type ModelProviderProfileV1 = {
   id: string
   name: string

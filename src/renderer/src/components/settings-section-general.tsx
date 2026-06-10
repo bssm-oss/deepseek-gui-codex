@@ -1,13 +1,19 @@
 import type { ReactElement } from 'react'
 import type { AppLocale, ApprovalPolicy, AppSettingsV1, SandboxMode } from '@shared/app-settings'
 import {
+  CODEX_OAUTH_MODEL_PROVIDER_ID,
   DEFAULT_CODEX_AUTH_PATH,
   DEFAULT_CODEX_OAUTH_BASE_URL,
+  DEFAULT_CODEX_OAUTH_MODEL,
+  DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
   DEFAULT_WRITE_INLINE_COMPLETION_MODEL,
   DEFAULT_WRITE_INLINE_LONG_COMPLETION_MAX_TOKENS,
   DEFAULT_KUN_DATA_DIR,
+  OLLAMA_MODEL_PROVIDER_ID,
   WRITE_INLINE_COMPLETION_MODEL_IDS,
   isKunRuntimeInsecure
 } from '@shared/app-settings'
@@ -29,10 +35,12 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
     t,
     tCommon,
     form,
+    provider,
     kun,
     activeApiKey,
     update,
     updateKun,
+    selectModelProvider,
     updateSharedCredential,
     sharedApiKey,
     sharedBaseUrl,
@@ -103,10 +111,78 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
   const openAtLoginSupported = platform === 'win32' || platform === 'darwin'
   const startMinimizedSupported = platform === 'win32'
   const desktopBehavior = form.appBehavior
+  const providerChoices = [
+    {
+      id: DEFAULT_MODEL_PROVIDER_ID,
+      title: t('providerChoiceDeepseek'),
+      description: t('providerChoiceDeepseekDesc'),
+      model: 'deepseek-v4-pro',
+      endpoint: provider.providers.find((item: { id: string }) => item.id === DEFAULT_MODEL_PROVIDER_ID)?.baseUrl
+    },
+    {
+      id: OLLAMA_MODEL_PROVIDER_ID,
+      title: t('providerChoiceGemma'),
+      description: t('providerChoiceGemmaDesc'),
+      model: DEFAULT_OLLAMA_MODEL,
+      endpoint:
+        provider.providers.find((item: { id: string }) => item.id === OLLAMA_MODEL_PROVIDER_ID)?.baseUrl ??
+        DEFAULT_OLLAMA_BASE_URL
+    },
+    {
+      id: CODEX_OAUTH_MODEL_PROVIDER_ID,
+      title: t('providerChoiceChatgpt'),
+      description: t('providerChoiceChatgptDesc'),
+      model: DEFAULT_CODEX_OAUTH_MODEL,
+      endpoint:
+        provider.providers.find((item: { id: string }) => item.id === CODEX_OAUTH_MODEL_PROVIDER_ID)?.baseUrl ??
+        DEFAULT_CODEX_OAUTH_BASE_URL
+    }
+  ]
+  const providerChoiceClass = (active: boolean): string =>
+    [
+      'group grid min-h-[118px] min-w-0 gap-2 rounded-xl border px-3.5 py-3 text-left transition',
+      active
+        ? 'border-accent/45 bg-accent/10 text-ds-ink shadow-sm ring-1 ring-accent/20'
+        : 'border-ds-border bg-ds-main/45 text-ds-muted hover:border-ds-border-strong hover:bg-ds-hover hover:text-ds-ink'
+    ].join(' ')
 
   return (
             <>
               <SettingsCard title={t('sectionGeneral')}>
+                <SettingRow
+                  title={t('providerChoiceTitle')}
+                  description={t('providerChoiceDesc')}
+                  wideControl
+                  control={
+                    <div className="grid gap-2.5 md:grid-cols-3">
+                      {providerChoices.map((choice) => {
+                        const active = (kun.providerId?.trim() || DEFAULT_MODEL_PROVIDER_ID) === choice.id
+                        return (
+                          <button
+                            key={choice.id}
+                            type="button"
+                            onClick={() => selectModelProvider(choice.id)}
+                            className={providerChoiceClass(active)}
+                          >
+                            <span className="flex min-w-0 items-center justify-between gap-2">
+                              <span className="min-w-0 truncate text-[14px] font-semibold">{choice.title}</span>
+                              <span
+                                className={`h-2 w-2 shrink-0 rounded-full ${
+                                  active ? 'bg-emerald-400' : 'bg-ds-border-strong group-hover:bg-ds-muted'
+                                }`}
+                              />
+                            </span>
+                            <span className="text-[12.5px] leading-5 text-ds-muted">{choice.description}</span>
+                            <span className="mt-auto grid gap-1 text-[11.5px] leading-4 text-ds-faint">
+                              <span className="truncate font-mono">{choice.model}</span>
+                              <span className="truncate font-mono">{choice.endpoint}</span>
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  }
+                />
                 {activeProvider?.authType === 'codex-oauth' ? (
                   <>
                     <SettingRow
@@ -134,6 +210,19 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
                       }
                     />
                   </>
+                ) : activeProvider?.authType === 'none' ? (
+                  <SettingRow
+                    title={t('baseUrl')}
+                    description={t('baseUrlLocalDesc')}
+                    control={
+                      <input
+                        className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30 md:max-w-md"
+                        placeholder={DEFAULT_OLLAMA_BASE_URL}
+                        value={sharedBaseUrl}
+                        onChange={(e) => updateSharedCredential({ baseUrl: e.target.value })}
+                      />
+                    }
+                  />
                 ) : (
                   <>
                     <SettingRow
