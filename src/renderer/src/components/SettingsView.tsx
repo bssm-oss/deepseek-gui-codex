@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
+  DEFAULT_CODEX_AUTH_PATH,
+  DEFAULT_MODEL_PROVIDER_ID,
   kunSettingsPatch,
   DEFAULT_WRITE_WORKSPACE_ROOT,
   type AppSettingsPatch,
@@ -14,6 +16,7 @@ import {
   resolveWriteInlineCompletionBaseUrl,
   resolveWriteInlineCompletionModel,
   type AppSettingsV1,
+  type ModelProviderProfileV1,
 } from '@shared/app-settings'
 import { rendererRuntimeClient } from '../agent/runtime-client'
 import { getProvider } from '../agent/registry'
@@ -576,6 +579,12 @@ export function SettingsView(): ReactElement {
   const kun = getKunRuntimeSettings(form)
   const provider = getModelProviderSettings(form)
   const activeApiKey = getActiveAgentApiKey(form)
+  const activeProviderId = kun.providerId?.trim() || DEFAULT_MODEL_PROVIDER_ID
+  const activeProvider = provider.providers.find((item) => item.id === activeProviderId) ?? provider.providers[0]
+  const activeProviderRequiresApiKey = activeProvider?.authType !== 'codex-oauth'
+  const sharedApiKey = activeProviderRequiresApiKey ? activeProvider?.apiKey ?? provider.apiKey : ''
+  const sharedBaseUrl = activeProvider?.baseUrl ?? provider.baseUrl
+  const sharedCodexAuthPath = activeProvider?.codexAuthPath ?? DEFAULT_CODEX_AUTH_PATH
 
   const update = (partial: SettingsPatch): void => {
     const next = mergeSettings(form, partial)
@@ -587,8 +596,6 @@ export function SettingsView(): ReactElement {
     scheduleSave(next)
   }
 
-  const sharedApiKey = provider.apiKey
-  const sharedBaseUrl = provider.baseUrl
   const writeInlineApiKeyInherited = !form.write.inlineCompletion.apiKey.trim()
   const writeInlineBaseUrlInherited =
     !form.write.inlineCompletion.baseUrl.trim() ||
@@ -597,7 +604,23 @@ export function SettingsView(): ReactElement {
   const effectiveWriteInlineBaseUrl = resolveWriteInlineCompletionBaseUrl(form)
   const effectiveWriteInlineApiKey = resolveWriteInlineCompletionApiKey(form)
   const effectiveWriteInlineModel = resolveWriteInlineCompletionModel(form)
-  const updateSharedCredential = (patch: { apiKey?: string; baseUrl?: string }): void => {
+  const updateModelProviderProfile = (id: string, patch: Partial<ModelProviderProfileV1>): void => {
+    const providers = provider.providers.map((item) => item.id === id ? { ...item, ...patch } : item)
+    const defaultProvider = providers.find((item) => item.id === DEFAULT_MODEL_PROVIDER_ID)
+    update({
+      provider: {
+        apiKey: defaultProvider?.apiKey ?? provider.apiKey,
+        baseUrl: defaultProvider?.baseUrl ?? provider.baseUrl,
+        providers
+      }
+    })
+  }
+
+  const updateSharedCredential = (patch: { apiKey?: string; baseUrl?: string; codexAuthPath?: string }): void => {
+    if (activeProvider && activeProvider.id !== DEFAULT_MODEL_PROVIDER_ID) {
+      updateModelProviderProfile(activeProvider.id, patch)
+      return
+    }
     update({ provider: patch })
   }
 
@@ -717,6 +740,9 @@ export function SettingsView(): ReactElement {
     updateSharedCredential,
     sharedApiKey,
     sharedBaseUrl,
+    sharedCodexAuthPath,
+    activeProvider,
+    activeProviderRequiresApiKey,
     showApiKey,
     setShowApiKey,
     showRuntimeToken,
@@ -794,7 +820,7 @@ export function SettingsView(): ReactElement {
 
       <div className="ds-no-drag min-h-0 min-w-0 flex-1 overflow-y-auto px-10 py-10">
         <div className="mx-auto max-w-3xl">
-          {!activeApiKey.trim() ? (
+          {activeProviderRequiresApiKey && !activeApiKey.trim() ? (
             <div className="mb-6 rounded-2xl border border-amber-300/80 bg-amber-50/95 px-5 py-4 text-amber-950 shadow-sm dark:border-amber-700/60 dark:bg-amber-950/35 dark:text-amber-100">
               <div className="text-[15px] font-semibold">{t('apiKeyRequiredTitle')}</div>
               <p className="mt-1 text-[13px] leading-6 text-amber-900/90 dark:text-amber-100/90">

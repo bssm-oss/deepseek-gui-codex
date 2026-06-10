@@ -325,6 +325,8 @@
   "baseUrl": "Service URL (optional)",
   "baseUrlDesc": "Default model service endpoint. Leave empty to use the official DeepSeek endpoint.",
   "baseUrlSharedDesc": "Default model service endpoint. Leave empty to use the official DeepSeek endpoint.",
+  "baseUrlCodexOAuthDesc": "Local Codex service endpoint used with Codex OAuth.",
+  "basicsCodexAuthPathDesc": "Uses your local Codex OAuth login file. If this Mac is already signed in to Codex, you can continue without an API key.",
   "baseUrlPlaceholder": "e.g. https://api.deepseek.com",
   "showSecret": "Show value",
   "hideSecret": "Hide value",
