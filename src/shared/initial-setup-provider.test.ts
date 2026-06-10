@@ -6,6 +6,9 @@ import {
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_KUN_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
   buildInitialSetupProviderPatch,
   defaultClawSettings,
   defaultKeyboardShortcuts,
@@ -39,7 +42,7 @@ function settings(): AppSettingsV1 {
   }
 }
 
-function applyProviderPatch(settings: AppSettingsV1, authType: 'api-key' | 'codex-oauth'): AppSettingsV1 {
+function applyProviderPatch(settings: AppSettingsV1, authType: 'api-key' | 'codex-oauth' | 'none'): AppSettingsV1 {
   const patch = buildInitialSetupProviderPatch(settings, authType)
   return normalizeAppSettings({
     ...settings,
@@ -91,5 +94,26 @@ describe('initial setup provider patch', () => {
     expect(next.agents.kun.model).toBe(DEFAULT_KUN_MODEL)
     expect(next.agents.kun.modelProviderAuthType).toBe('api-key')
     expect(next.agents.kun.codexAuthPath).toBe('')
+  })
+
+  it('selects local Gemma through Ollama without an API key', () => {
+    const next = applyProviderPatch(settings(), 'none')
+    const runtime = resolveKunRuntimeSettings(next)
+    const ollamaProvider = next.provider.providers.find((provider) =>
+      provider.id === OLLAMA_MODEL_PROVIDER_ID
+    )
+
+    expect(next.agents.kun.providerId).toBe(OLLAMA_MODEL_PROVIDER_ID)
+    expect(next.agents.kun.model).toBe(DEFAULT_OLLAMA_MODEL)
+    expect(ollamaProvider).toMatchObject({
+      authType: 'none',
+      apiKey: '',
+      baseUrl: DEFAULT_OLLAMA_BASE_URL,
+      codexAuthPath: '',
+      models: [DEFAULT_OLLAMA_MODEL]
+    })
+    expect(runtime.modelProviderAuthType).toBe('none')
+    expect(runtime.apiKey).toBe('')
+    expect(runtime.baseUrl).toBe(DEFAULT_OLLAMA_BASE_URL)
   })
 })

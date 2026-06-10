@@ -67,7 +67,7 @@ export type KunServeRuntimeOptions = {
   apiKey: string
   baseUrl: string
   model: string
-  modelProviderAuthType?: 'api-key' | 'codex-oauth'
+  modelProviderAuthType?: 'api-key' | 'codex-oauth' | 'none'
   codexAuthPath?: string
   approvalPolicy: ApprovalPolicy
   sandboxMode: SandboxMode

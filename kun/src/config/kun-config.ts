@@ -168,7 +168,7 @@ export const KunServeConfigSchema = z
     runtimeToken: z.string().optional(),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
-    modelProviderAuthType: z.enum(['api-key', 'codex-oauth']).optional(),
+    modelProviderAuthType: z.enum(['api-key', 'codex-oauth', 'none']).optional(),
     codexAuthPath: z.string().optional(),
     model: z.string().min(1).optional(),
     approvalPolicy: ApprovalPolicySchema.default(DEFAULT_APPROVAL_POLICY).optional(),

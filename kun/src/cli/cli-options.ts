@@ -38,7 +38,7 @@ export const ServeOptionsSchema = z.object({
   runtimeToken: z.string().default(''),
   apiKey: z.string().default(''),
   baseUrl: z.string().default('https://api.deepseek.com/beta'),
-  modelProviderAuthType: z.enum(['api-key', 'codex-oauth']).default('api-key'),
+  modelProviderAuthType: z.enum(['api-key', 'codex-oauth', 'none']).default('api-key'),
   codexAuthPath: z.string().default(''),
   model: z.string().default(DEFAULT_SERVE_MODEL),
   approvalPolicy: ApprovalPolicySchema.default(DEFAULT_APPROVAL_POLICY),

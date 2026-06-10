@@ -852,7 +852,7 @@
   "runtimeActionNeedsConnection": "먼저 런타임에 연결하십시오(상태 표시줄 참조).",
   "runtimeFetchFailed": "Kun에 도달하지 못했습니다. `kun serve`가 실행 중인지 확인하거나 설정에서 자동 시작을 활성화하세요.",
   "runtimeBinaryNotInstalled": "Kun CLI을 찾을 수 없습니다. DeepSeek-GUI 폴더에서 `npm install`를 실행하여 가져오거나 설정에서 바이너리 경로를 설정하세요.",
-  "runtimeMissingApiKey": "DeepSeek API 키가 없습니다. GUI가 로컬 런타임을 시작하기 전에 설정을 열고 추가하세요.",
+  "runtimeMissingApiKey": "선택한 모델 공급자의 인증 정보가 없습니다. 설정에서 API 키를 추가하거나 Gemma(Ollama) 또는 ChatGPT(Codex OAuth)를 선택하세요.",
   "runtimeAutoStartDisabled": "Kun은 오프라인 상태입니다. 설정에서 자동 시작을 활성화하거나 `kun serve`를 수동으로 시작하세요.",
   "runtimeUnhealthy": "현재 로컬 런타임을 사용할 수 없습니다. 포트, 토큰 또는 런타임 상태를 확인하세요.",
   "runtimeAuthRequired": "로컬 런타임에는 스레드 API에 대한 전달자 토큰이 필요합니다. 설정에서 런타임 토큰을 추가하거나 GUI를 다시 시작하여 로컬 런타임을 다시 관리할 수 있도록 하세요.",

@@ -5,6 +5,9 @@ import {
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_DEEPSEEK_BASE_URL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
   type AppSettingsV1,
   type KunRuntimeSettingsV1,
   type ModelProviderAuthTypeV1,
@@ -18,7 +21,8 @@ import { normalizeDeepseekBaseUrl } from './app-settings-normalizers'
 import { DEFAULT_COMPOSER_MODEL_IDS } from './default-composer-models'
 
 const DEFAULT_MODEL_PROVIDER_NAME = 'DeepSeek'
-const CODEX_OAUTH_MODEL_PROVIDER_NAME = 'Codex OAuth'
+const CODEX_OAUTH_MODEL_PROVIDER_NAME = 'ChatGPT'
+const OLLAMA_MODEL_PROVIDER_NAME = 'Gemma (Ollama)'
 const CODEX_OAUTH_MODEL_IDS = [
   DEFAULT_CODEX_OAUTH_MODEL,
   'gpt-5.4',
@@ -31,7 +35,7 @@ export function defaultModelProviderSettings(): ModelProviderSettingsV1 {
   return {
     apiKey: defaultProvider.apiKey,
     baseUrl: defaultProvider.baseUrl,
-    providers: [defaultProvider, defaultCodexOAuthProviderProfile()]
+    providers: [defaultProvider, defaultOllamaProviderProfile(), defaultCodexOAuthProviderProfile()]
   }
 }
 
@@ -48,6 +52,7 @@ export function normalizeModelProviderSettings(
   const providersById = new Map<string, ModelProviderProfileV1>()
   const defaultProvider = defaultDeepseekProviderProfile(apiKey, baseUrl)
   providersById.set(defaultProvider.id, defaultProvider)
+  providersById.set(OLLAMA_MODEL_PROVIDER_ID, defaultOllamaProviderProfile())
   providersById.set(CODEX_OAUTH_MODEL_PROVIDER_ID, defaultCodexOAuthProviderProfile())
   for (const rawProvider of rawProviders) {
     const provider = normalizeModelProviderProfile(rawProvider)
@@ -128,7 +133,11 @@ export function resolveKunRuntimeSettings(settings: AppSettingsV1): KunRuntimeSe
   const runtimeBaseUrl = runtime.baseUrl?.trim() ?? ''
   const authType = runtimeApiKey ? 'api-key' : provider.authType
   const providerBaseUrl = provider.baseUrl.trim() || (
-    authType === 'codex-oauth' ? DEFAULT_CODEX_OAUTH_BASE_URL : DEFAULT_DEEPSEEK_BASE_URL
+    authType === 'codex-oauth'
+      ? DEFAULT_CODEX_OAUTH_BASE_URL
+      : authType === 'none'
+        ? DEFAULT_OLLAMA_BASE_URL
+        : DEFAULT_DEEPSEEK_BASE_URL
   )
 
   return {
@@ -152,6 +161,9 @@ export function hasKunRuntimeModelCredentials(
   const runtime = resolveKunRuntimeSettings(settings)
   if (runtime.modelProviderAuthType === 'codex-oauth') {
     return Boolean(runtime.codexAuthPath.trim())
+  }
+  if (runtime.modelProviderAuthType === 'none') {
+    return Boolean(runtime.baseUrl.trim())
   }
   return Boolean(runtime.apiKey.trim() || fallbackApiKey.trim())
 }
@@ -180,6 +192,18 @@ function defaultCodexOAuthProviderProfile(): ModelProviderProfileV1 {
   }
 }
 
+function defaultOllamaProviderProfile(): ModelProviderProfileV1 {
+  return {
+    id: OLLAMA_MODEL_PROVIDER_ID,
+    name: OLLAMA_MODEL_PROVIDER_NAME,
+    authType: 'none',
+    apiKey: '',
+    baseUrl: DEFAULT_OLLAMA_BASE_URL,
+    codexAuthPath: '',
+    models: [DEFAULT_OLLAMA_MODEL]
+  }
+}
+
 function normalizeModelProviderProfile(
   input: ModelProviderProfilePatchV1 | undefined
 ): ModelProviderProfileV1 | null {
@@ -192,7 +216,9 @@ function normalizeModelProviderProfile(
       ? normalizeProviderBaseUrl(input.baseUrl, authType)
       : authType === 'codex-oauth'
         ? DEFAULT_CODEX_OAUTH_BASE_URL
-        : DEFAULT_DEEPSEEK_BASE_URL
+        : authType === 'none'
+          ? DEFAULT_OLLAMA_BASE_URL
+          : DEFAULT_DEEPSEEK_BASE_URL
   const models = normalizeProviderModels(input?.models)
   return {
     id,
@@ -209,13 +235,17 @@ function normalizeModelProviderProfile(
       ? models
       : authType === 'codex-oauth'
         ? [...CODEX_OAUTH_MODEL_IDS]
-        : []
+        : authType === 'none'
+          ? [DEFAULT_OLLAMA_MODEL]
+          : []
   }
 }
 
 function normalizeProviderAuthType(value: unknown, id: string): ModelProviderAuthTypeV1 {
   if (value === 'codex-oauth') return 'codex-oauth'
+  if (value === 'none') return 'none'
   if (id === CODEX_OAUTH_MODEL_PROVIDER_ID) return 'codex-oauth'
+  if (id === OLLAMA_MODEL_PROVIDER_ID) return 'none'
   return 'api-key'
 }
 
@@ -223,6 +253,10 @@ function normalizeProviderBaseUrl(baseUrl: string, authType: ModelProviderAuthTy
   if (authType === 'codex-oauth') {
     const trimmed = baseUrl.trim().replace(/\/+$/, '')
     return trimmed || DEFAULT_CODEX_OAUTH_BASE_URL
+  }
+  if (authType === 'none') {
+    const trimmed = baseUrl.trim().replace(/\/+$/, '')
+    return trimmed || DEFAULT_OLLAMA_BASE_URL
   }
   return normalizeDeepseekBaseUrl(baseUrl)
 }
