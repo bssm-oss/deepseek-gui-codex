@@ -1,17 +1,25 @@
 import { type ReactElement, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  buildInitialSetupProviderPatch,
+  CODEX_OAUTH_MODEL_PROVIDER_ID,
+  DEFAULT_CODEX_AUTH_PATH,
+  DEFAULT_CODEX_OAUTH_BASE_URL,
+  DEFAULT_DEEPSEEK_BASE_URL,
+  DEFAULT_MODEL_PROVIDER_ID,
   getActiveAgentApiKey,
   getModelProviderSettings,
   normalizeAppSettings,
   type AppLocale,
   type AppSettingsPatch,
-  type AppSettingsV1
+  type AppSettingsV1,
+  type ModelProviderAuthTypeV1,
+  type ModelProviderProfileV1
 } from '@shared/app-settings'
 import { rendererRuntimeClient } from '../agent/runtime-client'
 import { applyTheme } from '../lib/apply-theme'
 import { useChatStore } from '../store/chat-store'
-import { Eye, EyeOff, ExternalLink, Sparkles, Sun, Moon, Monitor, X } from 'lucide-react'
+import { Eye, EyeOff, ExternalLink, KeyRound, ShieldCheck, Sparkles, Sun, Moon, Monitor, X } from 'lucide-react'
 
 type ThemePref = AppSettingsV1['theme']
 type SetupFormPatch = AppSettingsPatch
@@ -41,7 +49,15 @@ export function InitialSetupDialog(): ReactElement {
   const [error, setError] = useState<string | null>(null)
   const formRef = useRef<AppSettingsV1 | null>(null)
   const isPreview = initialSetupMode === 'preview'
-  const provider = form ? getModelProviderSettings(form) : null
+  const providerSettings = form ? getModelProviderSettings(form) : null
+  const selectedAuthType: ModelProviderAuthTypeV1 =
+    form?.agents.kun.providerId === CODEX_OAUTH_MODEL_PROVIDER_ID ? 'codex-oauth' : 'api-key'
+  const selectedProviderId = selectedAuthType === 'codex-oauth'
+    ? CODEX_OAUTH_MODEL_PROVIDER_ID
+    : DEFAULT_MODEL_PROVIDER_ID
+  const selectedProvider = providerSettings?.providers.find((provider) =>
+    provider.id === selectedProviderId
+  ) ?? null
 
   const setCurrentForm = (next: AppSettingsV1 | null): void => {
     formRef.current = next
@@ -70,13 +86,42 @@ export function InitialSetupDialog(): ReactElement {
       provider: {
         ...current.provider,
         ...(patch.provider ?? {})
-      }
+      },
+      agents: patch.agents
+        ? {
+            ...current.agents,
+            ...patch.agents,
+            kun: {
+              ...current.agents.kun,
+              ...(patch.agents.kun ?? {})
+            }
+          }
+        : current.agents
     } as AppSettingsV1)
     setCurrentForm(next)
   }
 
-  const updateProvider = (patch: Partial<AppSettingsV1['provider']>): void => {
-    updateForm({ provider: patch })
+  const updateModelProvider = (id: string, patch: Partial<ModelProviderProfileV1>): void => {
+    const current = formRef.current
+    if (!current) return
+    const settings = getModelProviderSettings(current)
+    const providers = settings.providers.map((provider) =>
+      provider.id === id ? { ...provider, ...patch } : provider
+    )
+    const defaultProvider = providers.find((provider) => provider.id === DEFAULT_MODEL_PROVIDER_ID)
+    updateForm({
+      provider: {
+        apiKey: defaultProvider?.apiKey ?? settings.apiKey,
+        baseUrl: defaultProvider?.baseUrl ?? settings.baseUrl,
+        providers
+      }
+    })
+  }
+
+  const handleAuthTypeChange = (authType: ModelProviderAuthTypeV1): void => {
+    const current = formRef.current
+    if (!current) return
+    updateForm(buildInitialSetupProviderPatch(current, authType))
   }
 
   const handleThemeChange = (theme: ThemePref) => {
@@ -99,7 +144,10 @@ export function InitialSetupDialog(): ReactElement {
   const handleSave = async () => {
     const current = formRef.current
     if (!current) return
-    if (!getActiveAgentApiKey(current).trim()) {
+    const currentAuthType = current.agents.kun.providerId === CODEX_OAUTH_MODEL_PROVIDER_ID
+      ? 'codex-oauth'
+      : 'api-key'
+    if (currentAuthType === 'api-key' && !getActiveAgentApiKey(current).trim()) {
       setError(t('firstRunApiKeyValidation'))
       return
     }
@@ -140,6 +188,13 @@ export function InitialSetupDialog(): ReactElement {
   const fieldClass =
     'w-full rounded-xl border border-slate-300/75 bg-white/88 px-4 py-3 text-[15px] text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] outline-none transition focus:border-[#1388ff]/70 focus:ring-2 focus:ring-[#1388ff]/15 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:shadow-none dark:focus:border-[#3aa0ff]/70 dark:focus:ring-[#3aa0ff]/15 dark:placeholder:text-slate-500'
   const labelClass = 'text-sm font-semibold text-slate-700 dark:text-slate-200'
+  const providerChoiceClass = (active: boolean): string =>
+    [
+      'flex min-h-[82px] min-w-0 items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-all duration-200',
+      active
+        ? 'border-[#1388ff] bg-[#1388ff]/[0.07] text-[#1377df] shadow-[0_0_0_1px_rgba(19,136,255,0.12),0_8px_18px_rgba(19,136,255,0.07)] dark:border-[#3aa0ff] dark:bg-[#3aa0ff]/[0.12] dark:text-[#88c8ff]'
+        : 'border-slate-300/80 bg-white/72 text-slate-600 hover:border-slate-400/80 hover:bg-white dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:border-white/16 dark:hover:bg-white/[0.055]'
+    ].join(' ')
   return (
     <div className="ds-no-drag fixed inset-0 z-50 overflow-y-auto bg-[#eef2fb]/45 p-3 backdrop-blur-[18px] dark:bg-black/62 dark:backdrop-blur-[22px] sm:p-6">
       <div className="flex min-h-full items-center justify-center">
@@ -222,41 +277,104 @@ export function InitialSetupDialog(): ReactElement {
 
           <div className="space-y-2.5 sm:space-y-3.5">
             <label className={labelClass}>
-              {t('apiKey')}
+              {t('firstRunProviderTitle')}
             </label>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={provider?.apiKey ?? ''}
-                onChange={(e) => updateProvider({ apiKey: e.target.value })}
-                placeholder="sk-..."
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                className={`${fieldClass} pr-12 font-mono placeholder:font-sans`}
-              />
+            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[560px]:grid-cols-2">
               <button
                 type="button"
-                onClick={() => setShowApiKey((v) => !v)}
-                className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-slate-300"
+                onClick={() => handleAuthTypeChange('api-key')}
+                className={providerChoiceClass(selectedAuthType === 'api-key')}
               >
-                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <KeyRound className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                <span className="grid min-w-0 gap-1">
+                  <span className="text-[14px] font-semibold leading-5">
+                    {t('firstRunProviderDeepseek')}
+                  </span>
+                  <span className="text-[12.5px] leading-5 text-slate-500 dark:text-slate-400">
+                    {t('firstRunProviderDeepseekDesc')}
+                  </span>
+                </span>
               </button>
-            </div>
-            <div className="grid gap-3 rounded-xl border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-[13px] text-slate-500 dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-400 min-[560px]:grid-cols-[1fr_auto] min-[560px]:items-center">
-              <p className="min-w-0 leading-6">
-                {t('firstRunBuyApiHint')}
-              </p>
               <button
                 type="button"
-                onClick={handleOpenOfficialApiPage}
-                className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#1388ff]/24 bg-[#1388ff]/[0.06] px-3 py-1.5 text-[12.5px] font-semibold text-[#1377df] transition hover:bg-[#1388ff]/[0.1] dark:border-[#3aa0ff]/22 dark:bg-[#3aa0ff]/[0.12] dark:text-[#88c8ff] dark:hover:bg-[#3aa0ff]/[0.18]"
+                onClick={() => handleAuthTypeChange('codex-oauth')}
+                className={providerChoiceClass(selectedAuthType === 'codex-oauth')}
               >
-                <span className="min-w-0 text-center leading-tight">{t('firstRunBuyApiAction')}</span>
-                <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />
+                <ShieldCheck className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                <span className="grid min-w-0 gap-1">
+                  <span className="text-[14px] font-semibold leading-5">
+                    {t('firstRunProviderCodex')}
+                  </span>
+                  <span className="text-[12.5px] leading-5 text-slate-500 dark:text-slate-400">
+                    {t('firstRunProviderCodexDesc')}
+                  </span>
+                </span>
               </button>
             </div>
+          </div>
+
+          <div className="space-y-2.5 sm:space-y-3.5">
+            <label className={labelClass}>
+              {selectedAuthType === 'codex-oauth' ? t('modelProviderCodexAuthPath') : t('apiKey')}
+            </label>
+            {selectedAuthType === 'codex-oauth' ? (
+              <>
+                <input
+                  type="text"
+                  value={selectedProvider?.codexAuthPath ?? DEFAULT_CODEX_AUTH_PATH}
+                  onChange={(e) => updateModelProvider(CODEX_OAUTH_MODEL_PROVIDER_ID, {
+                    codexAuthPath: e.target.value
+                  })}
+                  placeholder={DEFAULT_CODEX_AUTH_PATH}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  className={`${fieldClass} font-mono placeholder:font-sans`}
+                />
+                <div className="rounded-xl border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-[13px] leading-6 text-slate-500 dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-400">
+                  {t('firstRunCodexAuthHint')}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="relative">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={selectedProvider?.apiKey ?? ''}
+                    onChange={(e) => updateModelProvider(DEFAULT_MODEL_PROVIDER_ID, {
+                      apiKey: e.target.value
+                    })}
+                    placeholder="sk-..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className={`${fieldClass} pr-12 font-mono placeholder:font-sans`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey((v) => !v)}
+                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/[0.06] dark:hover:text-slate-300"
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="grid gap-3 rounded-xl border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-[13px] text-slate-500 dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-400 min-[560px]:grid-cols-[1fr_auto] min-[560px]:items-center">
+                  <p className="min-w-0 leading-6">
+                    {t('firstRunBuyApiHint')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenOfficialApiPage}
+                    className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#1388ff]/24 bg-[#1388ff]/[0.06] px-3 py-1.5 text-[12.5px] font-semibold text-[#1377df] transition hover:bg-[#1388ff]/[0.1] dark:border-[#3aa0ff]/22 dark:bg-[#3aa0ff]/[0.12] dark:text-[#88c8ff] dark:hover:bg-[#3aa0ff]/[0.18]"
+                  >
+                    <span className="min-w-0 text-center leading-tight">{t('firstRunBuyApiAction')}</span>
+                    <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-2.5 sm:space-y-3.5">
@@ -265,9 +383,11 @@ export function InitialSetupDialog(): ReactElement {
             </label>
             <input
               type="text"
-              value={provider?.baseUrl ?? ''}
-              onChange={(e) => updateProvider({ baseUrl: e.target.value })}
-              placeholder="https://api.deepseek.com"
+              value={selectedProvider?.baseUrl ?? ''}
+              onChange={(e) => updateModelProvider(selectedProviderId, { baseUrl: e.target.value })}
+              placeholder={selectedAuthType === 'codex-oauth'
+                ? DEFAULT_CODEX_OAUTH_BASE_URL
+                : DEFAULT_DEEPSEEK_BASE_URL}
               className={fieldClass}
             />
           </div>
