@@ -145,6 +145,17 @@ export function resolveKunRuntimeSettings(settings: AppSettingsV1): KunRuntimeSe
   }
 }
 
+export function hasKunRuntimeModelCredentials(
+  settings: AppSettingsV1,
+  fallbackApiKey = ''
+): boolean {
+  const runtime = resolveKunRuntimeSettings(settings)
+  if (runtime.modelProviderAuthType === 'codex-oauth') {
+    return Boolean(runtime.codexAuthPath.trim())
+  }
+  return Boolean(runtime.apiKey.trim() || fallbackApiKey.trim())
+}
+
 function defaultDeepseekProviderProfile(apiKey: string, baseUrl: string): ModelProviderProfileV1 {
   return {
     id: DEFAULT_MODEL_PROVIDER_ID,
