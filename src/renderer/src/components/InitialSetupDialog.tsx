@@ -4,6 +4,7 @@ import {
   getActiveAgentApiKey,
   getModelProviderSettings,
   normalizeAppSettings,
+  type AppLocale,
   type AppSettingsPatch,
   type AppSettingsV1
 } from '@shared/app-settings'
@@ -19,6 +20,11 @@ const themeOptions: { value: ThemePref; icon: typeof Sun; labelKey: string }[] =
   { value: 'system', icon: Monitor, labelKey: 'themeSystem' },
   { value: 'light', icon: Sun, labelKey: 'themeLight' },
   { value: 'dark', icon: Moon, labelKey: 'themeDark' }
+]
+const languageOptions: { value: AppLocale; label: string }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'zh', label: '简体中文' },
+  { value: 'ko', label: '한국어' }
 ]
 const DEEPSEEK_USAGE_URL = 'https://platform.deepseek.com/usage'
 
@@ -195,20 +201,20 @@ export function InitialSetupDialog(): ReactElement {
             <label className={labelClass}>
               {t('language')}
             </label>
-            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[440px]:grid-cols-2">
-              {(['en', 'zh'] as const).map((lang) => {
-                const isActive = form.locale === lang
+            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[440px]:grid-cols-3">
+              {languageOptions.map((option) => {
+                const isActive = form.locale === option.value
                 return (
                   <button
-                    key={lang}
+                    key={option.value}
                     type="button"
                     onClick={() => {
-                      updateForm({ locale: lang })
-                      void applyI18n(lang)
+                      updateForm({ locale: option.value })
+                      void applyI18n(option.value)
                     }}
                     className={choiceButtonClass(isActive)}
                   >
-                    <span className="min-w-0 text-center leading-tight">{lang === 'en' ? 'English' : '简体中文'}</span>
+                    <span className="min-w-0 text-center leading-tight">{option.label}</span>
                   </button>
                 )
               })}

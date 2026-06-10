@@ -283,6 +283,13 @@ function trayLabels(locale: AppSettingsV1['locale']): { show: string; quit: stri
       tooltip: 'DeepSeek GUI'
     }
   }
+  if (locale === 'ko') {
+    return {
+      show: 'DeepSeek GUI 보기',
+      quit: '종료',
+      tooltip: 'DeepSeek GUI'
+    }
+  }
   return {
     show: 'Show DeepSeek GUI',
     quit: 'Quit',

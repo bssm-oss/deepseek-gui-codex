@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import type { ApprovalPolicy, AppSettingsV1, SandboxMode } from '@shared/app-settings'
+import type { AppLocale, ApprovalPolicy, AppSettingsV1, SandboxMode } from '@shared/app-settings'
 import {
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
@@ -139,10 +139,11 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
                     <select
                       className={selectControlClass}
                       value={form.locale}
-                      onChange={(e) => update({ locale: e.target.value as 'en' | 'zh' })}
+                      onChange={(e) => update({ locale: e.target.value as AppLocale })}
                     >
                       <option value="en">English</option>
                       <option value="zh">简体中文</option>
+                      <option value="ko">한국어</option>
                     </select>
                   }
                 />

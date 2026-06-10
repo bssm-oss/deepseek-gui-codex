@@ -209,7 +209,7 @@ describe('app-ipc-schemas', () => {
 
   it('strips legacy settings keys before validating settings patches', () => {
     const payload = settingsPatchSchema.parse({
-      locale: 'zh',
+      locale: 'ko',
       reasonix: { model: 'legacy-reasoner' },
       quickChat: { enabled: true },
       agents: {
@@ -225,7 +225,7 @@ describe('app-ipc-schemas', () => {
       }
     })
 
-    expect(payload.locale).toBe('zh')
+    expect(payload.locale).toBe('ko')
     expect(payload.agents?.kun?.port).toBe(9001)
     expect('reasonix' in payload).toBe(false)
     expect('quickChat' in payload).toBe(false)

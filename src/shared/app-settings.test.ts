@@ -179,6 +179,17 @@ describe('app behavior settings', () => {
   })
 })
 
+describe('app locale settings', () => {
+  it('keeps Korean as a supported UI locale', () => {
+    const normalized = normalizeAppSettings({
+      ...settings(),
+      locale: 'ko'
+    })
+
+    expect(normalized.locale).toBe('ko')
+  })
+})
+
 describe('keyboard shortcut settings', () => {
   it('defaults shortcut overrides to empty', () => {
     const raw = {

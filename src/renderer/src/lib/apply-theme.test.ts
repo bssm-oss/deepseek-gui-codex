@@ -22,6 +22,9 @@ describe('applyDocumentLocale', () => {
 
     applyDocumentLocale('zh')
     expect(attributes.get('lang')).toBe('zh-CN')
+
+    applyDocumentLocale('ko')
+    expect(attributes.get('lang')).toBe('ko-KR')
   })
 
   it('does not touch the attribute when the locale already matches', () => {
