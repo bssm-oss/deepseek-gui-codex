@@ -279,20 +279,20 @@ backgrounds:
 
 # ---------- 12. i18n & copy tone ----------
 i18n:
-  locales: [zh, en]
-  default: zh
+  locales: [ko, en]
+  default: ko
   tone: "helpful, direct, never robotic; first-person plural when describing product ('we ship'), second-person for the user. No emoji in production copy."
   error_format: "human sentence ending in punctuation; never raw stack traces"
 
 # ---------- 13. Brand & voice ----------
 brand:
   product_name: "DeepSeek GUI"
-  tagline: "把 Kun 的本地智能体能力带进桌面窗口"
+  tagline: "Kun의 로컬 AI agent 능력을 데스크톱 창으로 가져옵니다"
   hero_kw: [Code, Write, Connect phone]
   pillars:
-    - "本地优先 (Local-first): settings, sessions, logs all on disk; model calls use your own DeepSeek API key."
-    - "可观察 (Observable): every tool call, file change, reasoning step surfaces in the UI."
-    - "可控制 (Controllable): approval policy + sandbox mode + interrupt + revert."
+    - "로컬 우선 (Local-first): settings, sessions, logs stay on disk; model calls use your own DeepSeek API key."
+    - "관찰 가능 (Observable): every tool call, file change, reasoning step surfaces in the UI."
+    - "제어 가능 (Controllable): approval policy + sandbox mode + interrupt + revert."
   voice: "Direct, no marketing fluff. Show what the agent did, not how great it is."
 
 # ---------- 14. Accessibility ----------
@@ -325,7 +325,7 @@ dont:
 
 # DeepSeek GUI — DESIGN.md
 
-> 单一权威设计文档。所有屏幕、所有组件、所有视觉决策,都从这里出。
+> 단일 권위 디자인 문서입니다. 모든 화면, 컴포넌트, 시각적 결정은 여기에서 출발합니다.
 
 ---
 
@@ -498,7 +498,7 @@ information architecture should change first.
 Three families, and only three:
 
 - **Sans (body)**: SF Pro Text → PingFang SC → Noto Sans SC → Helvetica
-  Neue → Arial. The product is bilingual (zh + en), so the cascade
+  Neue → Arial. The product is bilingual (ko + en), so the cascade
   covers macOS, Windows, and Linux. Set as
   `body { font-family: ... }` in `index.css`.
 - **Display (hero, welcome)**: SF Pro Display, same CJK fallback.
@@ -611,7 +611,7 @@ first.
 ### 3.10 Voice and copy
 
 - The product is bilingual. Strings live under
-  `src/renderer/src/locales/{zh,en}/` and are loaded through
+  `src/renderer/src/locales/{ko,en}/` and are loaded through
   `react-i18next`. New strings ship in both locales at the same
   time.
 - Tone is direct, helpful, and slightly opinionated. First-person
@@ -621,7 +621,7 @@ first.
   punctuation; never a raw stack trace.
 - The product name is "DeepSeek GUI". The runtime is "Kun".
   The main workbenches are "Code" and "Write"; the phone/IM surface is
-  "Connect phone" in English and "连接手机" in zh copy. Internal code may
+  "Connect phone" in English and "휴대폰 연결" in Korean copy. Internal code may
   still say `claw`, but production copy should not expose it as the product name.
 
 ### 3.11 Theme switching
@@ -649,7 +649,7 @@ Before shipping a new screen, run this checklist:
 - [ ] Uses elevation tiers, not custom shadows.
 - [ ] All interactive elements have a focus ring (`ring-1
       ring-accent/30`).
-- [ ] Strings exist in both `zh` and `en` locale files.
+- [ ] Strings exist in both `ko` and `en` locale files.
 - [ ] No emoji, no marketing copy, no extra runtime surface.
 - [ ] No agent switcher, no runtime diagnostics, no legacy
       CodeWhale/Reasonix import.
@@ -927,7 +927,7 @@ src/
       components/                   # Workbench, Settings, ChangeInspector, …
       hooks/
       lib/                          # formatters, helpers, plan store, etc.
-      locales/{zh,en}/              # i18n
+      locales/{ko,en}/              # i18n
       plan/                         # Plan-mode prompt, store, panel
       store/                        # Zustand chat store + actions
       write/                        # Write-mode workspace, inline edit, RAG
@@ -1288,7 +1288,7 @@ intentionally boring.
    `kun-runtime.ts`.
 5. **Add settings only under `agents.kun`.** Anything
    else gets migrated to it.
-6. **Add i18n strings to both `zh` and `en` locale files.**
+6. **Add i18n strings to both `ko` and `en` locale files.**
 7. **If the surface needs a new visual element, add it to
    this file's YAML frontmatter first.** Don't invent tokens
    in the JSX.
@@ -1356,7 +1356,7 @@ If any check fails, the change is not ready.
 ## 15. References
 
 - `docs/kun-architecture.md` — single-runtime plan and
-  GUI拆改范围.
+  GUI removal and refactor scope.
 - `docs/kun-cache-optimization.md` — cache hit rate
   measurement, stable prefix rules, tool pair healing.
 - `docs/kun-contributing.md` — port & adapter / FCIS

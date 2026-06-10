@@ -299,7 +299,7 @@ jobs:
             echo
             echo "---"
             echo
-            echo "### 构建信息"
+            echo "### 빌드 정보"
             echo
             echo "- Release version: \`${RELEASE_VERSION}\`"
             echo "- Release channel: \`${RELEASE_CHANNEL}\`"

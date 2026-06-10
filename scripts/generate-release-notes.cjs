@@ -15,12 +15,12 @@ const CONVENTIONAL =
   /^(feat|fix|perf|refactor|docs|chore|test|build|ci)(\([\w./-]+\))?!?:\s*(.+)$/i
 
 const GROUPS = [
-  { key: 'feat', heading: '### ✨ 新功能' },
-  { key: 'fix', heading: '### 🐛 修复' },
-  { key: 'perf', heading: '### ⚡ 性能' },
-  { key: 'refactor', heading: '### ♻️ 重构' },
-  { key: 'docs', heading: '### 📝 文档' },
-  { key: 'other', heading: '### 📦 其他' }
+  { key: 'feat', heading: '### ✨ 새 기능' },
+  { key: 'fix', heading: '### 🐛 수정' },
+  { key: 'perf', heading: '### ⚡ 성능' },
+  { key: 'refactor', heading: '### ♻️ 리팩터링' },
+  { key: 'docs', heading: '### 📝 문서' },
+  { key: 'other', heading: '### 📦 기타' }
 ]
 
 function git(args) {
@@ -74,7 +74,7 @@ function main() {
   const range = sinceTag ? `${sinceTag}..HEAD` : 'HEAD'
   const count = git(['rev-list', '--count', range])
   if (count === '0') {
-    console.log('## 更新摘要\n\n（自上一版本以来没有新的 commit）\n')
+    console.log('## 업데이트 요약\n\n(이전 버전 이후 새 commit이 없습니다.)\n')
     return
   }
 
@@ -97,9 +97,9 @@ function main() {
     buckets[type].push(line)
   }
 
-  const out = ['## 更新摘要', '']
+  const out = ['## 업데이트 요약', '']
   if (sinceTag) {
-    out.push(`自 [\`${sinceTag}\`](https://github.com/XingYu-Zhong/DeepSeek-GUI/compare/${sinceTag}...HEAD) 以来的变更：`, '')
+    out.push(`[\`${sinceTag}\`](https://github.com/bssm-oss/deepseek-gui-codex/compare/${sinceTag}...HEAD) 이후 변경 사항:`, '')
   }
 
   let wroteSection = false
@@ -111,7 +111,7 @@ function main() {
   }
 
   if (!wroteSection) {
-    out.push('（暂无符合 Conventional Commits 规范的提交，见下方完整 commit 列表）', '')
+    out.push('(Conventional Commits 형식에 맞는 commit이 없습니다. 아래 전체 commit 목록을 확인하세요.)', '')
     for (const row of log.split('\n').filter(Boolean)) {
       const subject = row.slice(row.indexOf('\t') + 1)
       out.push(`- ${subject}`)
