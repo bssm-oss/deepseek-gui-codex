@@ -132,6 +132,25 @@ function mutableSettingsStore(initialSettings: AppSettingsV1): {
 }
 
 describe('ClawRuntime', () => {
+  it('does not bind the local IM webhook while Claw IM is disabled', async () => {
+    const settings = buildSettings()
+    settings.claw.enabled = false
+    settings.claw.im.enabled = false
+    const { store } = mutableSettingsStore(settings)
+    const logError = vi.fn()
+    const runtime = createClawRuntime({
+      store: store as never,
+      runtimeRequest: vi.fn() as never,
+      logError
+    })
+
+    runtime.sync(settings)
+
+    expect((runtime as unknown as { server: unknown | null }).server).toBeNull()
+    await expect(runtime.status()).resolves.toMatchObject({ imServerRunning: false })
+    expect(logError).not.toHaveBeenCalled()
+  })
+
   it('bases Feishu conversation workspaces on the configured Claw workspace', () => {
     const settings = buildSettings()
     settings.claw.im.workspaceRoot = '/tmp/claw-default'
