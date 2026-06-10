@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react'
 import type { AppLocale, ApprovalPolicy, AppSettingsV1, SandboxMode } from '@shared/app-settings'
 import {
+  DEFAULT_CODEX_AUTH_PATH,
+  DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
   DEFAULT_WRITE_INLINE_COMPLETION_MODEL,
@@ -34,6 +36,9 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
     updateSharedCredential,
     sharedApiKey,
     sharedBaseUrl,
+    sharedCodexAuthPath,
+    activeProvider,
+    activeProviderRequiresApiKey,
     showApiKey,
     setShowApiKey,
     showRuntimeToken,
@@ -102,36 +107,67 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
   return (
             <>
               <SettingsCard title={t('sectionGeneral')}>
-                <SettingRow
-                  title={t('apiKey')}
-                  description={t('apiKeySharedDesc')}
-                  control={
-                    <SecretInput
-                      value={sharedApiKey}
-                      onChange={(value) => updateSharedCredential({ apiKey: value })}
-                      visible={showApiKey}
-                      onToggleVisibility={() => setShowApiKey((value: boolean) => !value)}
-                      placeholder="sk-..."
-                      autoComplete="off"
-                      invalid={!activeApiKey.trim()}
-                      showLabel={t('showSecret')}
-                      hideLabel={t('hideSecret')}
-                      className="md:max-w-md"
+                {activeProvider?.authType === 'codex-oauth' ? (
+                  <>
+                    <SettingRow
+                      title={t('modelProviderCodexAuthPath')}
+                      description={t('basicsCodexAuthPathDesc')}
+                      control={
+                        <input
+                          className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30 md:max-w-md"
+                          placeholder={DEFAULT_CODEX_AUTH_PATH}
+                          value={sharedCodexAuthPath}
+                          onChange={(e) => updateSharedCredential({ codexAuthPath: e.target.value })}
+                        />
+                      }
                     />
-                  }
-                />
-                <SettingRow
-                  title={t('baseUrl')}
-                  description={t('baseUrlSharedDesc')}
-                  control={
-                    <input
-                      className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30 md:max-w-md"
-                      placeholder={t('baseUrlPlaceholder')}
-                      value={sharedBaseUrl}
-                      onChange={(e) => updateSharedCredential({ baseUrl: e.target.value })}
+                    <SettingRow
+                      title={t('baseUrl')}
+                      description={t('baseUrlCodexOAuthDesc')}
+                      control={
+                        <input
+                          className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30 md:max-w-md"
+                          placeholder={DEFAULT_CODEX_OAUTH_BASE_URL}
+                          value={sharedBaseUrl}
+                          onChange={(e) => updateSharedCredential({ baseUrl: e.target.value })}
+                        />
+                      }
                     />
-                  }
-                />
+                  </>
+                ) : (
+                  <>
+                    <SettingRow
+                      title={t('apiKey')}
+                      description={t('apiKeySharedDesc')}
+                      control={
+                        <SecretInput
+                          value={sharedApiKey}
+                          onChange={(value) => updateSharedCredential({ apiKey: value })}
+                          visible={showApiKey}
+                          onToggleVisibility={() => setShowApiKey((value: boolean) => !value)}
+                          placeholder="sk-..."
+                          autoComplete="off"
+                          invalid={activeProviderRequiresApiKey && !activeApiKey.trim()}
+                          showLabel={t('showSecret')}
+                          hideLabel={t('hideSecret')}
+                          className="md:max-w-md"
+                        />
+                      }
+                    />
+                    <SettingRow
+                      title={t('baseUrl')}
+                      description={t('baseUrlSharedDesc')}
+                      control={
+                        <input
+                          className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30 md:max-w-md"
+                          placeholder={t('baseUrlPlaceholder')}
+                          value={sharedBaseUrl}
+                          onChange={(e) => updateSharedCredential({ baseUrl: e.target.value })}
+                        />
+                      }
+                    />
+                  </>
+                )}
                 <SettingRow
                   title={t('language')}
                   description={t('languageDesc')}

@@ -121,6 +121,7 @@ export function InitialSetupDialog(): ReactElement {
   const handleAuthTypeChange = (authType: ModelProviderAuthTypeV1): void => {
     const current = formRef.current
     if (!current) return
+    setError(null)
     updateForm(buildInitialSetupProviderPatch(current, authType))
   }
 
