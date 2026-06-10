@@ -15,6 +15,7 @@ import {
   kunSettingsEnvelope,
   getActiveAgentApiKey,
   getKunRuntimeSettings,
+  hasKunRuntimeModelCredentials,
   mergeKunRuntimeSettings,
   mergeClawSettings,
   mergeModelProviderSettings,
@@ -134,6 +135,10 @@ function resolveConfiguredApiKey(settings: AppSettingsV1): string {
   const fromSettings = getActiveAgentApiKey(settings)
   const fromEnv = process.env.DEEPSEEK_API_KEY?.trim() ?? ''
   return fromSettings || fromEnv
+}
+
+function hasConfiguredModelCredentials(settings: AppSettingsV1): boolean {
+  return hasKunRuntimeModelCredentials(settings, process.env.DEEPSEEK_API_KEY?.trim() ?? '')
 }
 
 function runtimeJsonError(code: string, message: string): Error {
@@ -595,7 +600,7 @@ async function ensureRuntimeOnce(settings: AppSettingsV1): Promise<void> {
 
 async function ensureKunRuntime(settings: AppSettingsV1): Promise<void> {
   const runtime = getKunRuntimeSettings(settings)
-  const hasApiKey = Boolean(resolveConfiguredApiKey(settings))
+  const hasModelCredentials = hasConfiguredModelCredentials(settings)
 
   const healthy = await waitForKunHealth(settings, 2_000)
   if (healthy) {
@@ -604,10 +609,10 @@ async function ensureKunRuntime(settings: AppSettingsV1): Promise<void> {
     throw runtimeJsonError(threadApi.error, threadApi.message)
   }
 
-  if (!hasApiKey) {
+  if (!hasModelCredentials) {
     throw runtimeJsonError(
       'missing_api_key',
-      'DeepSeek API Key is required before the GUI can start Kun.'
+      'Configure a DeepSeek API key or Codex OAuth before the GUI can start Kun.'
     )
   }
   if (!runtime.autoStart) {
@@ -758,7 +763,7 @@ async function restartManagedRuntimeForSettingsChange(
   if (wasRunning) {
     await adapter.stopAndWait()
   }
-  if (!resolveConfiguredApiKey(next) || !runtime.autoStart) return
+  if (!hasConfiguredModelCredentials(next) || !runtime.autoStart) return
 
   try {
     await adapter.ensureRunning(next)
@@ -778,7 +783,7 @@ async function restartManagedRuntimeForMcpConfigChange(settings: AppSettingsV1):
 
   if (!wasRunning) return
   await adapter.stopAndWait()
-  if (!resolveConfiguredApiKey(settings) || !runtime.autoStart) return
+  if (!hasConfiguredModelCredentials(settings) || !runtime.autoStart) return
 
   try {
     await adapter.ensureRunning(settings)
@@ -961,7 +966,7 @@ app.whenReady().then(async () => {
     console.warn('[deepseek-gui] prune logs:', err)
   })
 
-  if (resolveConfiguredApiKey(initial)) {
+  if (hasConfiguredModelCredentials(initial)) {
     setTimeout(() => {
       void kunRuntimeAdapter.resolveExecutable(initial).catch((err) => {
         console.warn('[deepseek-gui] prewarm Kun binary:', err)

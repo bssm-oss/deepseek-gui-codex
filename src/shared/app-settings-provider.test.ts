@@ -6,7 +6,9 @@ import {
   defaultModelProviderSettings,
   defaultScheduleSettings,
   defaultWriteSettings,
+  hasKunRuntimeModelCredentials,
   resolveKunRuntimeSettings,
+  CODEX_OAUTH_MODEL_PROVIDER_ID,
   type AppSettingsV1
 } from './app-settings'
 
@@ -57,5 +59,20 @@ describe('model provider settings', () => {
 
     expect(runtime.apiKey).toBe('sk-custom')
     expect(runtime.baseUrl).toBe('https://custom.example/v1')
+  })
+
+  it('treats Codex OAuth as configured without a DeepSeek API key', () => {
+    const next = settings()
+    next.provider.apiKey = ''
+    next.provider.baseUrl = 'https://api.deepseek.com'
+    next.provider.providers = defaultModelProviderSettings().providers
+    next.agents.kun = {
+      ...defaultKunRuntimeSettings(),
+      providerId: CODEX_OAUTH_MODEL_PROVIDER_ID,
+      modelProviderAuthType: 'codex-oauth',
+      codexAuthPath: '~/.codex/auth.json'
+    }
+
+    expect(hasKunRuntimeModelCredentials(next)).toBe(true)
   })
 })
