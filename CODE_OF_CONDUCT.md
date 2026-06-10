@@ -1,75 +1,33 @@
-# Contributor Covenant Code of Conduct
+# 행동 강령
 
-## Our Pledge
+## 우리의 약속
 
-We as contributors and maintainers pledge to make participation in the DeepSeek GUI community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+이 프로젝트는 누구나 안전하게 참여할 수 있는 오픈소스 커뮤니티를 지향합니다. 나이, 장애, 성별, 성 정체성, 경험 수준, 국적, 외모, 인종, 종교, 성적 지향과 관계없이 존중받는 환경을 만들기 위해 노력합니다.
 
-We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
+## 기대하는 행동
 
-## Our Standards
+- 다른 사람에게 친절하고 존중하는 태도로 대합니다.
+- 다른 의견과 경험을 인정합니다.
+- 건설적인 피드백을 주고받습니다.
+- 실수했을 때 책임지고 바로잡습니다.
+- 개인의 이익보다 프로젝트와 커뮤니티의 건강을 우선합니다.
 
-Examples of behavior that contributes to a positive environment for our community include:
+## 허용되지 않는 행동
 
-- demonstrating empathy and kindness toward other people
-- being respectful of differing opinions, viewpoints, and experiences
-- giving and gracefully accepting constructive feedback
-- taking responsibility and apologizing to those affected by our mistakes
-- focusing on what is best not just for us as individuals, but for the overall community
+- 성적 언어, 이미지, 원치 않는 관심 또는 접근
+- 모욕, 조롱, 비하, 인신공격
+- 공개 또는 비공개 괴롭힘
+- 동의 없는 개인정보 공개
+- 전문적인 협업 공간에 부적절한 행동
 
-Examples of unacceptable behavior include:
+## 적용 범위
 
-- the use of sexualized language or imagery, and sexual attention or advances of any kind
-- trolling, insulting or derogatory comments, and personal or political attacks
-- public or private harassment
-- publishing others' private information, such as a physical or email address, without their explicit permission
-- other conduct which could reasonably be considered inappropriate in a professional setting
+이 행동 강령은 repository, issue, pull request, discussion, release, 문서, 외부 커뮤니케이션 등 프로젝트를 대표하는 모든 공간에 적용됩니다.
 
-## Enforcement Responsibilities
+## 신고와 집행
 
-Community leaders are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
+부적절한 행동은 프로젝트 관리자에게 신고할 수 있습니다. 관리자는 신고자의 개인정보와 안전을 존중하며, 필요한 경우 경고, 일시 제한, 영구 제한 등의 조치를 취할 수 있습니다.
 
-Community leaders have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct, and will communicate reasons for moderation decisions when appropriate.
+## 출처
 
-## Scope
-
-This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces. Examples of representing our community include using an official project email address, posting via an official social media account, or acting as an appointed representative at an online or offline event.
-
-## Enforcement
-
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers at [zhongxingyuemail@gmail.com](mailto:zhongxingyuemail@gmail.com). All complaints will be reviewed and investigated promptly and fairly.
-
-All community leaders are obligated to respect the privacy and security of the reporter of any incident.
-
-## Enforcement Guidelines
-
-Community leaders will follow these Community Impact Guidelines in determining the consequences for any action they deem in violation of this Code of Conduct:
-
-### 1. Correction
-
-**Community Impact**: Use of inappropriate language or other behavior deemed unprofessional or unwelcome in the community.
-
-**Consequence**: A private, written warning from community leaders, providing clarity around the nature of the violation and an explanation of why the behavior was inappropriate. A public apology may be requested.
-
-### 2. Warning
-
-**Community Impact**: A violation through a single incident or series of actions.
-
-**Consequence**: A warning with consequences for continued behavior. No interaction with the people involved, including unsolicited interaction with those enforcing the Code of Conduct, for a specified period of time. This includes avoiding interactions in community spaces as well as external channels like social media. Violating these terms may lead to a temporary or permanent ban.
-
-### 3. Temporary Ban
-
-**Community Impact**: A serious violation of community standards, including sustained inappropriate behavior.
-
-**Consequence**: A temporary ban from any sort of interaction or public communication with the community for a specified period of time. No public or private interaction with the people involved, including unsolicited interaction with those enforcing the Code of Conduct, is allowed during this period. Violating these terms may lead to a permanent ban.
-
-### 4. Permanent Ban
-
-**Community Impact**: Demonstrating a pattern of violation of community standards, including sustained inappropriate behavior, harassment of an individual, or aggression toward or disparagement of classes of individuals.
-
-**Consequence**: A permanent ban from any sort of public interaction within the community.
-
-## Attribution
-
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1, available at [https://www.contributor-covenant.org/version/2/1/code_of_conduct.html](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html).
-
-Community Impact Guidelines were inspired by [Mozilla's code of conduct enforcement ladder](https://github.com/mozilla/diversity).
+이 문서는 Contributor Covenant 2.1의 구조를 바탕으로 프로젝트에 맞게 한국어로 정리했습니다.

@@ -810,7 +810,7 @@ describe('ClawRuntime', () => {
       createScheduledTaskFromText: vi.fn(async () => ({ kind: 'noop' as const }))
     })
     const body = JSON.stringify({
-      text: '你好',
+      text: '안녕하세요',
       provider: 'weixin',
       channelId: 'channel_weixin',
       chatId: 'wx_user_1',
@@ -1275,7 +1275,7 @@ describe('ClawRuntime', () => {
                   items: [
                     {
                       kind: 'assistant_text',
-                      text: '我无法直接通过飞书发送文件给你，但文件已经创建在 workspace 中。'
+                      text: 'Feishu로 파일을 직접 보낼 수 없지만 파일은 workspace에 생성되어 있습니다.'
                     }
                   ]
                 }
@@ -1317,7 +1317,7 @@ describe('ClawRuntime', () => {
         chatType: 'p2p',
         mentionedBot: false,
         mentionAll: false,
-        content: '发给我',
+        content: '보내줘',
         rawContentType: 'text',
         mentions: []
       })
@@ -1325,7 +1325,7 @@ describe('ClawRuntime', () => {
       expect(send).toHaveBeenNthCalledWith(
         1,
         'oc_chat_a',
-        { text: '可以，我把 hello.md 作为附件发给你。' },
+        { text: '가능합니다. hello.md 파일을 첨부로 보내겠습니다.' },
         { replyTo: 'om_inbound', replyInThread: false }
       )
       expect(send).toHaveBeenNthCalledWith(

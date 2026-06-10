@@ -9,6 +9,7 @@ export {
   type SandboxMode
 } from '../../kun/src/contracts/policy.js'
 export type UiFontScale = 'small' | 'medium' | 'large'
+export type AppLocale = 'en' | 'ko'
 export type ScheduleRunMode = 'agent' | 'plan'
 export type ScheduleKind = 'manual' | 'interval' | 'daily' | 'at'
 export type ScheduleTaskStatus = 'idle' | 'running' | 'success' | 'error'
@@ -21,6 +22,8 @@ export type ClawTaskStatus = ScheduleTaskStatus
 export type ClawModel = ScheduleModel
 
 export const DEFAULT_DEEPSEEK_BASE_URL = 'https://api.deepseek.com'
+export const DEFAULT_CODEX_OAUTH_BASE_URL = 'https://chatgpt.com/backend-api/codex'
+export const DEFAULT_CODEX_AUTH_PATH = '~/.codex/auth.json'
 export const DEFAULT_CLAW_MODEL = 'auto'
 export const CLAW_MODEL_IDS = ['auto', 'deepseek-v4-pro', 'deepseek-v4-flash'] as const
 export const DEFAULT_SCHEDULE_MODEL = DEFAULT_CLAW_MODEL
@@ -31,6 +34,7 @@ export const DEFAULT_SCHEDULE_INTERNAL_PORT = 8788
 export const DEFAULT_WRITE_WORKSPACE_ROOT = '~/.deepseekgui/write_workspace'
 export const DEFAULT_KUN_DATA_DIR = '~/.deepseekgui/kun'
 export const DEFAULT_KUN_MODEL = 'deepseek-v4-pro'
+export const DEFAULT_CODEX_OAUTH_MODEL = 'gpt-5.5'
 export const DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL = 'https://api.deepseek.com/beta'
 export const DEFAULT_WRITE_INLINE_COMPLETION_MODEL = 'deepseek-v4-flash'
 export const WRITE_INLINE_COMPLETION_MODEL_IDS = ['deepseek-v4-pro', 'deepseek-v4-flash'] as const
@@ -43,11 +47,15 @@ export const DEFAULT_WRITE_INLINE_LONG_COMPLETION_MAX_TOKENS = 256
 export const DEFAULT_KUN_PORT = 8899
 export const DEFAULT_WEIXIN_BRIDGE_RPC_URL = 'http://127.0.0.1:18790/api/v1/admin/rpc'
 export const DEFAULT_MODEL_PROVIDER_ID = 'deepseek'
+export const CODEX_OAUTH_MODEL_PROVIDER_ID = 'codex-oauth'
+export type ModelProviderAuthTypeV1 = 'api-key' | 'codex-oauth'
 export type ModelProviderProfileV1 = {
   id: string
   name: string
+  authType: ModelProviderAuthTypeV1
   apiKey: string
   baseUrl: string
+  codexAuthPath: string
   models: string[]
 }
 export type ModelProviderSettingsV1 = {
@@ -73,6 +81,10 @@ export type KunRuntimeSettingsV1 = {
   baseUrl: string
   /** Selected General model provider profile. Empty or missing means the default provider. */
   providerId: string
+  /** Auth mode resolved from the selected model provider. */
+  modelProviderAuthType: ModelProviderAuthTypeV1
+  /** Local Codex auth.json path used when modelProviderAuthType is `codex-oauth`. */
+  codexAuthPath: string
   runtimeToken: string
   dataDir: string
   model: string
@@ -443,7 +455,7 @@ export type GuiUpdateConfigV1 = {
 
 export type AppSettingsV1 = {
   version: 1
-  locale: 'en' | 'zh'
+  locale: AppLocale
   theme: 'system' | 'light' | 'dark'
   uiFontScale: UiFontScale
   provider: ModelProviderSettingsV1

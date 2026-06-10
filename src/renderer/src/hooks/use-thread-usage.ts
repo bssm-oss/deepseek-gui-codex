@@ -43,9 +43,9 @@ export function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat().format(value)
 }
 
-function isChineseLocale(locale?: string): boolean {
+function isKoreanLocale(locale?: string): boolean {
   const normalized = (locale ?? '').trim().toLowerCase()
-  return normalized === 'zh' || normalized.startsWith('zh-')
+  return normalized === 'ko' || normalized.startsWith('ko-')
 }
 
 function fallbackLocale(): string {
@@ -58,10 +58,10 @@ function formatMoneyValue(value: number): string {
 }
 
 export function formatCost(costUsd: number, locale = fallbackLocale(), costCny?: number | null): string {
-  if (isChineseLocale(locale)) {
+  if (isKoreanLocale(locale)) {
     const safeUsd = Number.isFinite(costUsd) ? costUsd : 0
     const value = typeof costCny === 'number' && Number.isFinite(costCny) ? costCny : safeUsd * 7.2
-    return `￥${formatMoneyValue(value)}`
+    return `₩${formatMoneyValue(value * 190)}`
   }
   return `$${formatMoneyValue(costUsd)}`
 }

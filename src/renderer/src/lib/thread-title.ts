@@ -1,7 +1,7 @@
 import type { NormalizedThread } from '../agent/types'
 import i18n from '../i18n'
 
-const LEGACY_PLACEHOLDER_TITLES = new Set(['New Thread', '新会话'])
+const LEGACY_PLACEHOLDER_TITLES = new Set(['New Thread', '새 대화'])
 const INTERNAL_PLACEHOLDER_TITLE_PATTERN = /^__codex_[a-z0-9_]+__$/i
 const MAX_THREAD_TITLE_LENGTH = 48
 

@@ -68,7 +68,7 @@ describe('gui-plan path validation', () => {
 
 describe('plan feature name sanitisation', () => {
   it('handles unicode and emoji request strings', () => {
-    const name = planFeatureNameFromRequest('登录：添加 OAuth 🪪')
+    const name = planFeatureNameFromRequest('로그인: OAuth 추가 🪪')
     expect(name).toBeTruthy()
     expect(name).not.toMatch(/[<>:"\\|?*]/)
   })

@@ -10,9 +10,9 @@ const DEV_SERVER_COMMAND_RE =
 const DEV_SERVER_OUTPUT_RE =
   /\b(?:vite v?\d|local:\s*https?:\/\/|network:\s*https?:\/\/|ready in \d+(?:\.\d+)?\s*(?:ms|s)|ready on\s+https?:\/\/|started server|server started|compiled successfully|webpack compiled|app running at|serving at|listening on\s+https?:\/\/)\b/i
 const DEV_PREVIEW_ASSISTANT_ACTION_RE =
-  /\b(?:open|visit|browse|view|check(?:\s+it)?\s+out|go\s+to)\b|(?:打开|访问|前往|查看)/i
+  /\b(?:open|visit|browse|view|check(?:\s+it)?\s+out|go\s+to)\b|(?:열어|접속|방문|확인|보러)/i
 const DEV_PREVIEW_ASSISTANT_STATUS_RE =
-  /\b(?:served|serving|running|started|available|reachable|live\s+at|running\s+at|available\s+at|listening\s+on|app\s+running\s+at|serving\s+at)\b|(?:运行在|启动于|已启动|可访问|可预览|本地服务)/i
+  /\b(?:served|serving|running|started|available|reachable|live\s+at|running\s+at|available\s+at|listening\s+on|app\s+running\s+at|serving\s+at)\b|(?:실행 중|시작됨|접속 가능|미리보기 가능|로컬 서비스)/i
 const NON_PREVIEW_CONTEXT_RE =
   /\b(?:deepseek(?:-tui)?|runtime|runtime:request|health check|bearer token|sse|threads?)\b|\/(?:health|v\d+\/|metrics|readyz?|livez?)(?:\b|\/|\?)/i
 

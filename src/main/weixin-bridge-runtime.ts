@@ -544,7 +544,7 @@ async function startWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
       qrUrl: existing.qrcodeUrl,
       qrDataUrl: existing.qrcodeUrl,
       sessionKey,
-      message: '二维码已显示，请用手机微信扫描。'
+      message: 'QR 코드가 표시되었습니다. 휴대폰 WeChat으로 스캔하세요.'
     }
   }
 
@@ -566,17 +566,17 @@ async function startWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
     qrUrl: qrcodeUrl,
     qrDataUrl: qrcodeUrl,
     sessionKey,
-    message: '用手机微信扫描二维码，以继续连接。'
+    message: '연결을 계속하려면 휴대폰 WeChat으로 QR 코드를 스캔하세요.'
   }
 }
 
 async function waitForWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
   const sessionKey = recordString(params, 'accountId') || recordString(params, 'sessionKey')
   const login = activeLogins.get(sessionKey)
-  if (!login) return { connected: false, message: '当前没有进行中的登录，请先发起登录。' }
+  if (!login) return { connected: false, message: '진행 중인 로그인이 없습니다. 먼저 로그인을 시작하세요.' }
   if (!isLoginFresh(login)) {
     activeLogins.delete(sessionKey)
-    return { connected: false, message: '二维码已过期，请重新生成。' }
+    return { connected: false, message: 'QR 코드가 만료되었습니다. 다시 생성하세요.' }
   }
 
   const timeoutMs = Math.max(Number(params.timeoutMs) || 480_000, 1_000)
@@ -590,14 +590,14 @@ async function waitForWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
       case 'need_verifycode':
         return {
           connected: false,
-          message: '微信要求输入手机端验证码。当前 GUI 登录流程暂不支持验证码，请重新生成二维码后再试。'
+          message: 'WeChat에서 휴대폰 인증 코드를 요구했습니다. 현재 GUI 로그인 흐름은 인증 코드를 지원하지 않으므로 QR 코드를 다시 생성한 뒤 시도하세요.'
         }
       case 'expired':
         activeLogins.delete(sessionKey)
-        return { connected: false, message: '二维码已过期，请重新生成。' }
+        return { connected: false, message: 'QR 코드가 만료되었습니다. 다시 생성하세요.' }
       case 'verify_code_blocked':
         activeLogins.delete(sessionKey)
-        return { connected: false, message: '多次输入错误，连接流程已停止。请稍后再试。' }
+        return { connected: false, message: '여러 번 잘못 입력되어 연결 흐름이 중단되었습니다. 잠시 후 다시 시도하세요.' }
       case 'binded_redirect':
         activeLogins.delete(sessionKey)
         return {
@@ -605,7 +605,7 @@ async function waitForWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
           alreadyConnected: true,
           accountId: normalizeAccountId(sessionKey),
           sessionKey,
-          message: '已连接过此 DeepSeek GUI，无需重复连接。'
+          message: '이 DeepSeek GUI는 이미 연결되어 있어 다시 연결할 필요가 없습니다.'
         }
       case 'scaned_but_redirect': {
         const redirectHost = recordString(status, 'redirect_host')
@@ -617,7 +617,7 @@ async function waitForWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
         const token = recordString(status, 'bot_token')
         if (!rawAccountId || !token) {
           activeLogins.delete(sessionKey)
-          return { connected: false, message: '登录失败：服务器未返回完整账号信息。' }
+          return { connected: false, message: '로그인 실패: 서버가 완전한 계정 정보를 반환하지 않았습니다.' }
         }
         const accountId = normalizeAccountId(rawAccountId)
         const baseUrl = recordString(status, 'baseurl') || WEIXIN_API_BASE_URL
@@ -631,14 +631,14 @@ async function waitForWeixinLogin(params: JsonRecord): Promise<JsonRecord> {
           sessionKey,
           baseUrl,
           userId,
-          message: '已将此 DeepSeek GUI 连接到微信。'
+          message: '이 DeepSeek GUI를 WeChat에 연결했습니다.'
         }
       }
     }
     await sleep(1_000)
   }
   activeLogins.delete(sessionKey)
-  return { connected: false, message: '登录超时，请重试。' }
+  return { connected: false, message: '로그인 시간이 초과되었습니다. 다시 시도하세요.' }
 }
 
 function contextTokenKey(accountId: string, userId: string): string {

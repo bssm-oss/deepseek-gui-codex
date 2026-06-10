@@ -121,7 +121,7 @@ describe('registerAppIpcHandlers', () => {
 
     registerAppIpcHandlers(registerOptions({ applySettingsPatch }))
 
-    const payload = { ...settings(), locale: 'zh' as const }
+    const payload = { ...settings(), locale: 'ko' as const }
     const handler = handlers.get('settings:set')
     await expect(handler?.({}, payload)).resolves.toEqual(settings())
     expect(applySettingsPatch).toHaveBeenCalledWith(payload)

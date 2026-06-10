@@ -118,7 +118,7 @@ module.exports = {
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.inherit.plist',
     icon: './src/asset/img/deepseek.png',
-    // arm64 (Apple Silicon) + x64 (Intel). On M 系列 Mac 本地打包会各出一组 dmg/zip。
+    // arm64 (Apple Silicon) + x64 (Intel). Apple Silicon local builds emit one dmg/zip per arch.
     target: [
       { target: 'dmg', arch: ['arm64', 'x64'] },
       { target: 'zip', arch: ['arm64', 'x64'] }
@@ -137,7 +137,7 @@ module.exports = {
     perMachine: false,
     allowElevation: true,
     selectPerMachineByDefault: false,
-    // 明确创建快捷方式；always 在覆盖安装时也会重建（即使用户曾删掉桌面图标）
+    // Explicitly create shortcuts; always also recreates them during overwrite installs.
     createDesktopShortcut: 'always',
     createStartMenuShortcut: true,
     shortcutName: 'DeepSeek GUI',

@@ -128,13 +128,13 @@ export function buildFollowupMessageFromUserInput(
   questions: UserInputQuestion[],
   answers: Array<{ id: string; label: string; value?: string }>
 ): string {
-  const isZh = i18n.language.toLowerCase().startsWith('zh')
-  const title = isZh
-    ? '上一个回合请求了 request_user_input，但当前运行时无法通过 HTTP 直接提交该工具结果。请把下面的用户回答当作 request_user_input 的结果继续执行：'
+  const isKo = i18n.language.toLowerCase().startsWith('ko')
+  const title = isKo
+    ? '이전 턴에서 request_user_input을 요청했지만 현재 런타임은 HTTP로 해당 도구 결과를 직접 제출할 수 없습니다. 아래 사용자 답변을 request_user_input 결과로 간주하고 계속 진행하세요:'
     : 'The previous turn requested request_user_input, but this runtime cannot submit that tool result over HTTP. Please treat the answers below as the request_user_input result and continue:'
-  const unansweredLabel = isZh ? '（未回答）' : '(not answered)'
-  const answerPrefix = isZh ? '回答: ' : 'Answer: '
-  const noAnswerLabel = isZh ? '用户未提供问题回答。' : 'User did not provide answers.'
+  const unansweredLabel = isKo ? '(미응답)' : '(not answered)'
+  const answerPrefix = isKo ? '답변: ' : 'Answer: '
+  const noAnswerLabel = isKo ? '사용자가 질문에 답변하지 않았습니다.' : 'User did not provide answers.'
   if (questions.length === 0 || answers.length === 0) {
     return noAnswerLabel
   }

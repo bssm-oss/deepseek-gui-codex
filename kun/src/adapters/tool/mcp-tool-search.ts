@@ -46,14 +46,14 @@ const STOP_WORDS = new Set([
 ])
 
 const ACTION_SYNONYMS: Record<string, string[]> = {
-  search: ['find', 'lookup', 'query', '查', '搜索', '检索', '找'],
-  find: ['search', 'lookup', 'query', '查找'],
-  list: ['show', 'enumerate', '列出', '列表'],
-  get: ['read', 'fetch', 'retrieve', 'describe', '获取', '读取', '查看'],
-  create: ['add', 'new', 'make', '创建', '新增'],
-  update: ['edit', 'modify', 'set', 'change', '更新', '修改'],
-  delete: ['remove', 'destroy', '删除', '移除'],
-  send: ['post', 'publish', 'reply', 'comment', '发送', '回复', '评论']
+  search: ['find', 'lookup', 'query', '검색', '찾기', '조회'],
+  find: ['search', 'lookup', 'query', '찾아'],
+  list: ['show', 'enumerate', '목록', '나열'],
+  get: ['read', 'fetch', 'retrieve', 'describe', '가져오기', '읽기', '보기'],
+  create: ['add', 'new', 'make', '생성', '추가'],
+  update: ['edit', 'modify', 'set', 'change', '갱신', '수정'],
+  delete: ['remove', 'destroy', '삭제', '제거'],
+  send: ['post', 'publish', 'reply', 'comment', '전송', '답장', '댓글']
 }
 
 export type McpSearchClientLike = {

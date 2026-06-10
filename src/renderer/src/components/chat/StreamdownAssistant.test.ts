@@ -3,7 +3,7 @@ import { shouldAnimateStreamingText } from './StreamdownAssistant'
 
 describe('shouldAnimateStreamingText', () => {
   it('keeps the lightweight reveal for short single-line text', () => {
-    expect(shouldAnimateStreamingText('正在检查配置。')).toBe(true)
+    expect(shouldAnimateStreamingText('설정을 확인하고 있습니다.')).toBe(true)
     expect(shouldAnimateStreamingText('Checking the CSS variables.')).toBe(true)
   })
 

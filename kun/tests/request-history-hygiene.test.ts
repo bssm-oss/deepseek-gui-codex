@@ -78,7 +78,7 @@ describe('request history hygiene', () => {
   })
 
   it('shrinks dense text when the approximate token cap is exceeded before the byte cap', () => {
-    const denseOutput = '汉'.repeat(9_000)
+    const denseOutput = '한'.repeat(9_000)
     const result = makeToolResultItem({
       id: 'dense_result',
       threadId: 'thr_1',
@@ -112,7 +112,7 @@ describe('request history hygiene', () => {
       toolName: 'write',
       arguments: {
         path: 'src/generated.txt',
-        content: '汉'.repeat(2_500)
+        content: '한'.repeat(2_500)
       }
     })
     const result = makeToolResultItem({

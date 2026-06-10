@@ -45,18 +45,18 @@ describe('SkillRuntime', () => {
     expect(diagnostics.validationErrors[0]?.message).toMatch(/expected string/i)
   })
 
-  it('uses Chinese legacy frontmatter names for diagnostics without changing folder ids', async () => {
+  it('uses Korean legacy frontmatter names for diagnostics without changing folder ids', async () => {
     const skillRoot = join(root, 'tdd')
     await mkdir(skillRoot, { recursive: true })
     await writeFile(join(skillRoot, 'SKILL.md'), [
       '---',
-      'name: 测试驱动开发(TDD)',
-      'description: 用测试先行推进实现。',
+      'name: 테스트 주도 개발(TDD)',
+      'description: 실패 테스트를 먼저 쓰고 구현을 진행합니다.',
       '---',
       '',
       '# TDD',
       '',
-      '先写失败测试，再实现。'
+      '먼저 실패 테스트를 작성한 뒤 구현합니다.'
     ].join('\n'), 'utf8')
 
     const runtime = await createRuntime()
@@ -64,26 +64,26 @@ describe('SkillRuntime', () => {
 
     expect(diagnostics.skills).toContainEqual(expect.objectContaining({
       id: 'tdd',
-      name: '测试驱动开发(TDD)',
-      description: '用测试先行推进实现。',
+      name: '테스트 주도 개발(TDD)',
+      description: '실패 테스트를 먼저 쓰고 구현을 진행합니다.',
       legacy: true
     }))
   })
 
-  it('keeps skill.json manifests with Chinese names from collapsing to one id', async () => {
+  it('keeps skill.json manifests with Korean names from collapsing to one id', async () => {
     await writeSkill('review-cn', {
-      name: '代码审查',
+      name: '코드 리뷰',
       triggers: { commands: ['/review-cn'] }
     }, 'review instructions')
     await writeSkill('requirements-cn', {
-      name: '需求分析',
+      name: '요구사항 분석',
       triggers: { commands: ['/requirements-cn'] }
     }, 'requirements instructions')
 
     const runtime = await createRuntime()
     const diagnostics = runtime.diagnostics()
 
-    expect(diagnostics.skills.map((skill) => skill.id).sort()).toEqual(['代码审查', '需求分析'])
+    expect(diagnostics.skills.map((skill) => skill.id).sort()).toEqual(['요구사항 분석', '코드 리뷰'])
     expect(diagnostics.validationErrors).toEqual([])
   })
 

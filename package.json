@@ -84,10 +84,10 @@
     "vite": "^6.2.0",
     "vitest": "^4.1.7"
   },
-  "author": "DeepSeek GUI Contributors",
-  "homepage": "https://deepseek-gui.com",
+  "author": "heodongun and DeepSeek GUI Contributors",
+  "homepage": "https://github.com/bssm-oss/deepseek-gui-codex",
   "repository": {
     "type": "git",
-    "url": "https://github.com/XingYu-Zhong/DeepSeek-GUI.git"
+    "url": "https://github.com/bssm-oss/deepseek-gui-codex.git"
   }
 }

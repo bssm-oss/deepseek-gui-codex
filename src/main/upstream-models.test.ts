@@ -28,8 +28,10 @@ function settings(dataDir: string, model = 'settings-model'): AppSettingsV1 {
         {
           id: 'custom-provider',
           name: 'Custom Provider',
+          authType: 'api-key',
           apiKey: 'sk-custom',
           baseUrl: 'https://custom.example/v1',
+          codexAuthPath: '',
           models: ['custom-provider-model']
         }
       ]

@@ -9,6 +9,7 @@ import { InMemoryUserInputGate } from '../adapters/in-memory-user-input-gate.js'
 import { InMemoryEventBus } from '../adapters/in-memory-event-bus.js'
 import { FileSessionStore, FileThreadStore } from '../adapters/file/index.js'
 import { HybridSessionStore, HybridThreadStore } from '../adapters/hybrid/index.js'
+import { CodexOAuthModelClient } from '../adapters/model/codex-oauth-model-client.js'
 import { DeepseekCompatModelClient } from '../adapters/model/deepseek-compat-model-client.js'
 import { CapabilityRegistry } from '../adapters/tool/capability-registry.js'
 import { buildGoalLocalTools } from '../adapters/tool/goal-tools.js'
@@ -66,6 +67,8 @@ export type KunServeRuntimeOptions = {
   apiKey: string
   baseUrl: string
   model: string
+  modelProviderAuthType?: 'api-key' | 'codex-oauth'
+  codexAuthPath?: string
   approvalPolicy: ApprovalPolicy
   sandboxMode: SandboxMode
   tokenEconomyMode: boolean
@@ -135,11 +138,17 @@ export async function createKunServeRuntime(
   })
   const threadService = new ThreadService({ threadStore, sessionStore, events, ids, nowIso })
   await seedUsageCarryover({ threadStore, sessionStore, usageService })
-  const modelClient = new DeepseekCompatModelClient({
-    baseUrl: options.baseUrl,
-    apiKey: options.apiKey,
-    model: options.model
-  })
+  const modelClient = options.modelProviderAuthType === 'codex-oauth'
+    ? new CodexOAuthModelClient({
+        baseUrl: options.baseUrl,
+        authPath: options.codexAuthPath ?? '',
+        model: options.model
+      })
+    : new DeepseekCompatModelClient({
+        baseUrl: options.baseUrl,
+        apiKey: options.apiKey,
+        model: options.model
+      })
   const modelProfiles = modelContextProfilesFromConfig({
     contextCompaction: options.contextCompaction,
     models: options.models

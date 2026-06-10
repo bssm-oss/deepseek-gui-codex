@@ -86,8 +86,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-function isChineseLocale(settings: AppSettingsV1): boolean {
-  return settings.locale.toLowerCase().startsWith('zh')
+function isKoreanLocale(settings: AppSettingsV1): boolean {
+  return settings.locale.toLowerCase().startsWith('ko')
 }
 
 function currentImModel(settings: AppSettingsV1, channel?: ClawImChannelV1): string {
@@ -95,14 +95,14 @@ function currentImModel(settings: AppSettingsV1, channel?: ClawImChannelV1): str
 }
 
 function imCommandHelpText(settings: AppSettingsV1): string {
-  if (isChineseLocale(settings)) {
+  if (isKoreanLocale(settings)) {
     return [
-      'Claw IM 命令：',
-      '- `/help`：查看命令帮助',
-      '- `/new`：当前 IM 连接开启新话题',
-      '- `/model`：查看当前模型',
-      '- `/model auto|pro|flash`：切换当前 IM 连接模型',
-      '也支持 `-new`、`-help`、`-model flash` 这种写法。'
+      'Claw IM 명령:',
+      '- `/help`: 명령 도움말 보기',
+      '- `/new`: 현재 IM 연결에서 새 주제 시작',
+      '- `/model`: 현재 모델 보기',
+      '- `/model auto|pro|flash`: 현재 IM 연결 모델 전환',
+      '`-new`, `-help`, `-model flash` 형식도 지원합니다.'
     ].join('\n')
   }
   return [
@@ -117,26 +117,26 @@ function imCommandHelpText(settings: AppSettingsV1): string {
 
 function imModelCommandHint(settings: AppSettingsV1): string {
   const ids = CLAW_MODEL_IDS.join(', ')
-  return isChineseLocale(settings)
-    ? `可使用 /model auto、/model pro 或 /model flash。可用模型：${ids}。`
+  return isKoreanLocale(settings)
+    ? `/model auto, /model pro, /model flash를 사용할 수 있습니다. 사용 가능한 모델: ${ids}.`
     : `Use /model auto, /model pro, or /model flash. Available models: ${ids}.`
 }
 
 function imModelCurrentText(settings: AppSettingsV1, model: string): string {
-  return isChineseLocale(settings)
-    ? `当前 Claw IM 模型是 \`${model}\`。`
+  return isKoreanLocale(settings)
+    ? `현재 Claw IM 모델: \`${model}\`.`
     : `Current Claw IM model: \`${model}\`.`
 }
 
 function imModelChangedText(settings: AppSettingsV1, model: string): string {
-  return isChineseLocale(settings)
-    ? `Claw IM 模型已切换到 \`${model}\`。`
+  return isKoreanLocale(settings)
+    ? `Claw IM 모델을 \`${model}\`로 전환했습니다.`
     : `Claw IM model switched to \`${model}\`.`
 }
 
 function imNewTopicText(settings: AppSettingsV1): string {
-  return isChineseLocale(settings)
-    ? '新话题已开启。下一条消息会创建新的本地会话。'
+  return isKoreanLocale(settings)
+    ? '새 주제를 시작했습니다. 다음 메시지는 새 로컬 대화를 만듭니다.'
     : 'Started a new topic. The next message will create a fresh local conversation.'
 }
 
@@ -1054,7 +1054,7 @@ export class ClawRuntime {
         await this.sendFeishuMessage(
           bridge,
           message.chatId,
-          { text: `我找到了文件 ${existingFiles.map((file) => file.fileName).join(', ')}，但飞书附件上传失败：${failure}` },
+          { text: `파일 ${existingFiles.map((file) => file.fileName).join(', ')}을 찾았지만 Feishu 첨부 파일 업로드에 실패했습니다: ${failure}` },
           replyOptions,
           {
             purpose: 'direct-existing-file-failed',
@@ -1167,7 +1167,7 @@ export class ClawRuntime {
         await this.sendFeishuMessage(
           bridge,
           message.chatId,
-          { text: `我找到了文件 ${filesToSend.map((file) => file.fileName).join(', ')}，但飞书附件上传失败：${delivery.failed[0]?.message || 'unknown upload error'}` },
+          { text: `파일 ${filesToSend.map((file) => file.fileName).join(', ')}을 찾았지만 Feishu 첨부 파일 업로드에 실패했습니다: ${delivery.failed[0]?.message || 'unknown upload error'}` },
           replyOptions,
           {
             purpose: 'agent-file-failed',

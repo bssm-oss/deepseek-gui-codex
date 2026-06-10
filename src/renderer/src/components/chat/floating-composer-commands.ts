@@ -32,18 +32,19 @@ export const COMPACT_COMMAND_ALIASES = [
   'compress',
   'summarize',
   'summary',
-  '压缩会话',
-  '总结会话',
-  '压缩',
-  '总结'
+  '대화압축',
+  '대화 압축',
+  '요약',
+  '요약하기'
 ]
 
 export const REVIEW_COMMAND_ALIASES = [
   'review',
   'code-review',
   'codereview',
-  '审查',
-  '代码审查'
+  '검토',
+  '코드검토',
+  '코드 검토'
 ]
 
 export function getSlashQuery(input: string): string | null {

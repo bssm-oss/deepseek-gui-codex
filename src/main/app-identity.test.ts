@@ -26,8 +26,8 @@ describe('app identity bootstrap', () => {
   })
 
   it('does not call app.setAppUserModelId (caller responsibility on win32)', async () => {
-    // setAppUserModelId 仍然由 main/index.ts 里的 win32 分支调用,
-    // 这里只验证 configureAppIdentity 自己不重复设置。
+    // main/index.ts still calls setAppUserModelId from the win32 branch.
+    // This test only checks that configureAppIdentity does not duplicate it.
     const { configureAppIdentity } = await import('./app-identity')
     configureAppIdentity()
     expect(setAppUserModelId).not.toHaveBeenCalled()

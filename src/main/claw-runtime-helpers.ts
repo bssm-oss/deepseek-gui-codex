@@ -268,15 +268,15 @@ export function latestGeneratedFiles(
 export function shouldSendGeneratedFilesForPrompt(prompt: string): boolean {
   const text = prompt.trim()
   if (!text) return false
-  return /发给我|发送给我|发一下|发来|发过来|传给我|传过来|上传|附件|以附件|发文件|文件发|文档发/i.test(text) ||
+  return /보내줘|전송해줘|전달해줘|올려줘|업로드|첨부|첨부파일|파일 보내|문서 보내/i.test(text) ||
     /\b(send|attach|attachment|upload)\b/i.test(text) ||
-    /给我(?:一个|一份)?.{0,24}(文档|文件|\.(?:md|txt|pdf|docx|xlsx|csv|pptx))/i.test(text)
+    /(?:문서|파일|\.(?:md|txt|pdf|docx|xlsx|csv|pptx)).{0,24}(?:보내|전송|첨부)/i.test(text)
 }
 
 export function shouldDirectSendExistingGeneratedFilesForPrompt(prompt: string): boolean {
   const text = prompt.trim()
   if (!text) return false
-  return /发给我|发送给我|发一下|发来|发过来|传给我|传过来|上传|附件|以附件|直接发|发文件|文件发|文档发/i.test(text) ||
+  return /보내줘|전송해줘|전달해줘|올려줘|업로드|첨부|첨부파일|바로 보내|파일 보내|문서 보내/i.test(text) ||
     /\b(send|attach|attachment|upload)\b/i.test(text)
 }
 
@@ -284,8 +284,8 @@ export function replyTextForGeneratedFiles(replyText: string, files: readonly Cl
   const trimmed = replyText.trim()
   if (files.length === 0) return trimmed
   const names = files.map((file) => file.fileName).join(', ')
-  if (!trimmed || /(无法|不能|没办法).{0,20}(直接)?(通过)?(飞书|Lark|发送|发).{0,20}(文件|文档|附件)/i.test(trimmed)) {
-    return `可以，我把 ${names} 作为附件发给你。`
+  if (!trimmed || /(불가|못|어렵).{0,20}(직접)?(Feishu|Lark|전송|보내).{0,20}(파일|문서|첨부)/i.test(trimmed)) {
+    return `가능합니다. ${names} 파일을 첨부로 보내겠습니다.`
   }
   return trimmed
 }

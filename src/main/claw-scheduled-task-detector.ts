@@ -6,7 +6,7 @@ import {
 } from '../shared/app-settings'
 
 const SCHEDULED_TASK_CANDIDATE_RE =
-  /(?:提醒|定时|闹钟|通知|叫我|叫醒|稍后|之后|到点|分钟后|小时后|秒后|天后|明天|后天|今晚|later|remind|reminder|alarm|timer|schedule|scheduled|tomorrow|tonight|in\s+\d+\s+(?:seconds?|minutes?|hours?|days?|weeks?))/iu
+  /(?:알림|리마인드|예약|타이머|깨워|나중에|이후|뒤에|분 후|시간 후|초 후|일 후|내일|모레|오늘 밤|later|remind|reminder|alarm|timer|schedule|scheduled|tomorrow|tonight|in\s+\d+\s+(?:seconds?|minutes?|hours?|days?|weeks?))/iu
 
 const ISO_WITH_TIMEZONE_RE = /(?:[zZ]|[+-]\d{2}:\d{2})$/u
 const DETECTOR_TIMEOUT_MS = 12_000
@@ -34,7 +34,7 @@ function normalizeReminderBody(value: string): string {
     .trim()
     .replace(/^[,，:：\s]+/u, '')
     .replace(/[。！？!?~～\s]+$/u, '')
-    .replace(/^(?:一下|一声|一下子)\s*/u, '')
+    .replace(/^(?:한번|한 번|잠깐)\s*/u, '')
     .trim()
 }
 
@@ -45,13 +45,13 @@ function normalizeReminderName(value: string): string {
     .trim()
   if (!normalized) return 'Reminder'
   const compact = normalized.length > 20 ? normalized.slice(0, 20).trim() : normalized
-  return /(?:提醒|reminder)$/iu.test(compact) ? compact : `${compact} reminder`
+  return /(?:알림|리마인더|reminder)$/iu.test(compact) ? compact : `${compact} reminder`
 }
 
 function buildTaskPrompt(body: string): string {
   if (!body) return '⏰ Reminder'
   if (body.startsWith('⏰')) return body
-  if (/^提醒[:：]?/u.test(body)) return `⏰ ${body}`
+  if (/^알림[:：]?/u.test(body)) return `⏰ ${body}`
   if (/^remind(?:er)?[:：]?\s*/iu.test(body)) return `⏰ ${body}`
   return `⏰ Reminder: ${body}`
 }

@@ -28,7 +28,7 @@ describe('write quoted selections', () => {
       createdAt: '2026-05-24T00:00:00.000Z'
     }
 
-    expect(formatWriteQuotedSelectionForPrompt(quote)).toContain('第3-5行')
+    expect(formatWriteQuotedSelectionForPrompt(quote)).toContain('라인 3-5')
     expect(formatWriteQuotedSelectionForPrompt(quote)).toContain(WRITE_QUOTE_ORIGINAL_START)
     expect(formatWriteQuotedSelectionForPrompt(quote)).toContain(WRITE_QUOTE_ORIGINAL_END)
   })
@@ -60,16 +60,16 @@ describe('write quoted selections', () => {
 
     expect(quote).not.toBeNull()
     const prompt = composeWritePrompt('Please revise it.', quote ? [quote] : [])
-    expect(prompt.startsWith('[写作上下文]')).toBe(true)
-    expect(prompt).toContain('不要调用 request_user_input')
-    expect(prompt.indexOf('[引用片段] a.md')).toBeGreaterThan(prompt.indexOf('[写作上下文]'))
+    expect(prompt.startsWith('[쓰기 컨텍스트]')).toBe(true)
+    expect(prompt).toContain('request_user_input을 호출하지 말고')
+    expect(prompt.indexOf('[인용 조각] a.md')).toBeGreaterThan(prompt.indexOf('[쓰기 컨텍스트]'))
     expect(prompt.endsWith('Please revise it.')).toBe(true)
     vi.restoreAllMocks()
   })
 
   it('parses write prompt metadata for compact timeline display', () => {
     const prompt = composeWritePrompt(
-      '帮我改成中文',
+      '한국어로 다듬어줘',
       [{
         id: 'quote-1',
         text: "Hi, I'm zxy. Glad to meet you.",
@@ -88,10 +88,10 @@ describe('write quoted selections', () => {
 
     const parsed = parseWritePromptForDisplay(prompt)
 
-    expect(parsed?.userInput).toBe('帮我改成中文')
+    expect(parsed?.userInput).toBe('한국어로 다듬어줘')
     expect(parsed?.context?.workspaceRoot).toBe('/tmp/workspace')
     expect(parsed?.context?.activeFile).toBe('welcome.md')
-    expect(parsed?.context?.lines.some((line) => line.includes('不要调用 request_user_input'))).toBe(true)
+    expect(parsed?.context?.lines.some((line) => line.includes('request_user_input을 호출하지 말고'))).toBe(true)
     expect(parsed?.quotes).toHaveLength(1)
     expect(parsed?.quotes[0]).toMatchObject({
       sourceTitle: 'welcome.md',

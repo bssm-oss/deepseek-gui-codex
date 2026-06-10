@@ -512,7 +512,7 @@ export function parseWriteInlineAction(
   if (labeledShort) return completionAction(labeledShort[1], 'short')
   const labeledLong = trimmed.match(/^(?:long)[:：]\s*([\s\S]*)$/i)
   if (labeledLong) return completionAction(labeledLong[1], 'long')
-  const labeledEdit = trimmed.match(/^(?:edit|replacement|replace|new text|edited text|替换文本|修改后|修改|替换)[:：]\s*([\s\S]*)$/i)
+  const labeledEdit = trimmed.match(/^(?:edit|replacement|replace|new text|edited text|교체 텍스트|수정 후|수정|교체)[:：]\s*([\s\S]*)$/i)
   if (labeledEdit) return editAction(labeledEdit[1], options.editTarget)
 
   return fallbackKind === 'edit'

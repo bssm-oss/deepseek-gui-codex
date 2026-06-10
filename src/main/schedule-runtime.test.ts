@@ -124,7 +124,7 @@ describe('ScheduleRuntime', () => {
   })
 
   it('builds compact Scheduled task thread titles from task names', () => {
-    expect(scheduledThreadTitle('每日A股行情盘')).toBe('[Scheduled task] 每日A股')
+    expect(scheduledThreadTitle('매일 주식 현황판')).toBe('[Scheduled task] 매일 주')
     expect(scheduledThreadTitle('Task 1')).toBe('[Scheduled task] Task')
     expect(scheduledThreadTitle('   ')).toBe('[Scheduled task]')
   })

@@ -106,6 +106,8 @@ export function buildKunServeArgs(input: {
   port: number
   dataDir: string
   baseUrl?: string
+  modelProviderAuthType?: string
+  codexAuthPath?: string
   model: string
   approvalPolicy: string
   sandboxMode: string
@@ -121,6 +123,8 @@ export function buildKunServeArgs(input: {
     '--data-dir',
     input.dataDir,
     ...(input.baseUrl ? ['--base-url', input.baseUrl] : []),
+    ...(input.modelProviderAuthType ? ['--model-provider-auth-type', input.modelProviderAuthType] : []),
+    ...(input.codexAuthPath ? ['--codex-auth-path', input.codexAuthPath] : []),
     '--model',
     input.model,
     '--approval-policy',

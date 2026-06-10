@@ -195,7 +195,7 @@ describe('MCP tool provider', () => {
     const search = await host.execute({
       callId: 'call_search',
       toolName: 'mcp_search',
-      arguments: { query: '查 github issue' }
+      arguments: { query: 'github issue 검색' }
     }, context)
     expect(search.item.kind).toBe('tool_result')
     if (search.item.kind === 'tool_result') {

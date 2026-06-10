@@ -58,23 +58,23 @@ describe('skill-service', () => {
     await mkdir(reviewRoot, { recursive: true })
     await writeFile(join(tddRoot, 'SKILL.md'), [
       '---',
-      'name: 测试驱动开发(TDD)',
-      'description: 用测试先行推进实现。',
+      'name: 테스트 주도 개발(TDD)',
+      'description: 실패 테스트를 먼저 쓰고 구현을 진행합니다.',
       '---',
       '',
       '# TDD',
       '',
-      '先写失败测试，再实现。'
+      '먼저 실패 테스트를 작성한 뒤 구현합니다.'
     ].join('\n'), 'utf8')
     await writeFile(join(reviewRoot, 'SKILL.md'), [
       '---',
-      'name: 代码审查',
-      'description: 检查回归风险。',
+      'name: 코드 리뷰',
+      'description: 회귀 위험을 점검합니다.',
       '---',
       '',
       '# Review',
       '',
-      '关注正确性和测试。'
+      '정확성과 테스트에 집중합니다.'
     ].join('\n'), 'utf8')
 
     const result = await listGuiSkills(createSettings(workspaceRoot), workspaceRoot)
@@ -86,13 +86,13 @@ describe('skill-service', () => {
     expect(projectSkills).toEqual(expect.arrayContaining([
       expect.objectContaining({
         id: 'tdd',
-        name: '测试驱动开发(TDD)',
-        description: '用测试先行推进实现。'
+        name: '테스트 주도 개발(TDD)',
+        description: '실패 테스트를 먼저 쓰고 구현을 진행합니다.'
       }),
       expect.objectContaining({
         id: 'code-review',
-        name: '代码审查',
-        description: '检查回归风险。'
+        name: '코드 리뷰',
+        description: '회귀 위험을 점검합니다.'
       })
     ]))
     expect(projectSkills.map((skill) => skill.id)).not.toContain('skill')

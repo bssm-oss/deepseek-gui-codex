@@ -13,7 +13,7 @@ function createRequest(workspaceRoot: string): WriteInlineCompletionRequest {
   return {
     workspaceRoot,
     currentFilePath: join(workspaceRoot, 'draft.md'),
-    prefix: '# Draft\n\nBM25 关键词',
+    prefix: '# Draft\n\nBM25 키워드',
     suffix: '',
     cursor: {
       line: 3,
@@ -21,7 +21,7 @@ function createRequest(workspaceRoot: string): WriteInlineCompletionRequest {
     },
     context: {
       language: 'markdown',
-      currentLinePrefix: 'BM25 关键词',
+      currentLinePrefix: 'BM25 키워드',
       currentLineSuffix: '',
       previousLine: '',
       previousNonEmptyLine: '# Draft',
@@ -46,8 +46,8 @@ function createRequest(workspaceRoot: string): WriteInlineCompletionRequest {
       rejectionCriteria: ['Do not ramble.']
     },
     preview: {
-      local: 'BM25 关键词',
-      documentTail: '# Draft BM25 关键词'
+      local: 'BM25 키워드',
+      documentTail: '# Draft BM25 키워드'
     },
     model: 'deepseek-v4-flash'
   }
@@ -58,13 +58,13 @@ afterEach(() => {
 })
 
 describe('write retrieval service', () => {
-  it('tokenizes latin terms and CJK keyword ngrams', () => {
-    const tokens = tokenizeWriteRetrievalText('BM25 关键词检索 RAG')
+  it('tokenizes latin terms and Korean keyword ngrams', () => {
+    const tokens = tokenizeWriteRetrievalText('BM25 키워드 검색 RAG')
 
     expect(tokens).toContain('bm25')
     expect(tokens).toContain('rag')
-    expect(tokens).toContain('关键词')
-    expect(tokens).toContain('检索')
+    expect(tokens).toContain('키워')
+    expect(tokens).toContain('검색')
   })
 
   it('retrieves relevant cross-document snippets and excludes the active file', async () => {
@@ -72,16 +72,16 @@ describe('write retrieval service', () => {
     await mkdir(join(workspaceRoot, 'research'), { recursive: true })
     await writeFile(
       join(workspaceRoot, 'draft.md'),
-      '# Draft\n\nBM25 关键词',
+      '# Draft\n\nBM25 키워드',
       'utf8'
     )
     await writeFile(
       join(workspaceRoot, 'research', 'rag.md'),
       [
-        '# 检索方案',
+        '# 검색 전략',
         '',
-        'BM25 关键词检索用于在写作空间中找到相关片段。',
-        '这些片段会作为 RAG 上下文帮助补全保持术语一致。'
+        'BM25 키워드 검색은 쓰기 작업공간에서 관련 조각을 찾는 데 사용됩니다.',
+        '이 조각은 RAG 컨텍스트로 들어가 보완 결과의 용어 일관성을 유지합니다.'
       ].join('\n'),
       'utf8'
     )
@@ -95,7 +95,7 @@ describe('write retrieval service', () => {
 
     expect(result?.source).toBe('bm25-keyword')
     expect(result?.snippets[0].path).toBe('research/rag.md')
-    expect(result?.snippets[0].text).toContain('BM25 关键词检索')
+    expect(result?.snippets[0].text).toContain('BM25 키워드 검색')
     expect(result?.snippets.some((snippet) => snippet.path === 'draft.md')).toBe(false)
   })
 

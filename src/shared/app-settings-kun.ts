@@ -95,6 +95,8 @@ export function defaultKunRuntimeSettings(
     apiKey: '',
     baseUrl: '',
     providerId: '',
+    modelProviderAuthType: 'api-key',
+    codexAuthPath: '',
     runtimeToken: '',
     dataDir: DEFAULT_KUN_DATA_DIR,
     model: DEFAULT_KUN_MODEL,
@@ -251,6 +253,10 @@ export function mergeKunRuntimeSettings(
   return {
     ...current,
     ...(patch ?? {}),
+    modelProviderAuthType: patch?.modelProviderAuthType === 'codex-oauth' || patch?.modelProviderAuthType === 'api-key'
+      ? patch.modelProviderAuthType
+      : current.modelProviderAuthType,
+    codexAuthPath: typeof patch?.codexAuthPath === 'string' ? patch.codexAuthPath.trim() : current.codexAuthPath,
     tokenEconomyMode: nextTokenEconomy.enabled,
     tokenEconomy: nextTokenEconomy,
     mcpSearch: nextMcpSearch,
@@ -485,6 +491,8 @@ export function migrateLegacyAppSettings(parsed: LegacyAppSettingsShape): Partia
     apiKey: legacySource.apiKey,
     baseUrl: legacySource.baseUrl,
     providerId: '',
+    modelProviderAuthType: 'api-key' as const,
+    codexAuthPath: '',
     runtimeToken: isReasoningLegacy ? kunDefaults.runtimeToken : legacyLocalHttp.runtimeToken,
     model: isReasoningLegacy ? legacyReasoning.model : kunDefaults.model,
     approvalPolicy: isReasoningLegacy ? kunDefaults.approvalPolicy : legacyLocalHttp.approvalPolicy,

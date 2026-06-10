@@ -15,7 +15,7 @@ const feishuInstallTargets = new Map<string, boolean>()
 const MAX_FEISHU_INSTALL_TARGETS = 32
 const weixinInstallSessions = new Map<string, string>()
 const MAX_WEIXIN_INSTALL_SESSIONS = 32
-const WEIXIN_ALREADY_CONNECTED_MESSAGE = '已连接过此 OpenClaw'
+const WEIXIN_ALREADY_CONNECTED_MESSAGE = '이미 이 OpenClaw에 연결되어 있습니다'
 const WEIXIN_BRIDGE_URL_ENV_KEYS = [
   'DEEPSEEK_GUI_WEIXIN_BRIDGE_URL',
   'DEEPSEEK_GUI_OPENCLAW_GATEWAY_URL',

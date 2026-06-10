@@ -241,7 +241,7 @@ release_write_notes_file() {
     echo ""
     echo "---"
     echo ""
-    echo "### 构建信息"
+    echo "### 빌드 정보"
     echo ""
     echo "- Release version: \`${RELEASE_VERSION}\`"
     echo "- Release channel: \`${RELEASE_CHANNEL:-frontier}\`"
@@ -249,11 +249,11 @@ release_write_notes_file() {
     echo "- Branch: \`$(release_git branch --show-current)\`"
     echo "- Commit: \`$(release_git rev-parse --short HEAD)\`"
     if [[ "${SIGNING:-false}" == true ]]; then
-      echo "- macOS: ✅ Developer ID 签名 + 公证"
+      echo "- macOS: ✅ Developer ID 서명 + 공증"
     else
-      echo "- macOS: 未签名构建"
+      echo "- macOS: 서명되지 않은 빌드"
     fi
-    echo "- 平台: ${RELEASE_PLATFORMS_NOTE:-macOS (arm64 + Intel x64) · Windows (\`release-win.ps1\` / \`release-win.sh\`)}"
+    echo "- 플랫폼: ${RELEASE_PLATFORMS_NOTE:-macOS (arm64 + Intel x64) · Windows (\`release-win.ps1\` / \`release-win.sh\`)}"
   } >>"${dest}"
 }
 
