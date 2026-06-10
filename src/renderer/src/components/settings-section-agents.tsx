@@ -1,6 +1,16 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from 'react'
-import type { ApprovalPolicy, AppSettingsV1, ModelProviderProfileV1, SandboxMode } from '@shared/app-settings'
+import type {
+  ApprovalPolicy,
+  AppSettingsV1,
+  ModelProviderAuthTypeV1,
+  ModelProviderProfileV1,
+  SandboxMode
+} from '@shared/app-settings'
 import {
+  CODEX_OAUTH_MODEL_PROVIDER_ID,
+  DEFAULT_CODEX_AUTH_PATH,
+  DEFAULT_CODEX_OAUTH_BASE_URL,
+  DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
@@ -404,6 +414,23 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
   const updateModelProvider = (id: string, patch: Partial<ModelProviderProfileV1>): void => {
     updateModelProviders(modelProviders.map((item) => item.id === id ? { ...item, ...patch } : item))
   }
+  const updateModelProviderAuthType = (authType: ModelProviderAuthTypeV1): void => {
+    if (!activeProvider) return
+    updateModelProvider(activeProvider.id, authType === 'codex-oauth'
+      ? {
+          authType,
+          apiKey: '',
+          baseUrl: activeProvider.authType === 'codex-oauth'
+            ? activeProvider.baseUrl.trim() || DEFAULT_CODEX_OAUTH_BASE_URL
+            : DEFAULT_CODEX_OAUTH_BASE_URL,
+          codexAuthPath: activeProvider.codexAuthPath.trim() || DEFAULT_CODEX_AUTH_PATH,
+          models: activeProvider.models.length > 0 ? activeProvider.models : [DEFAULT_CODEX_OAUTH_MODEL]
+        }
+      : {
+          authType,
+          codexAuthPath: ''
+        })
+  }
   const addModelProvider = (): void => {
     const baseId = 'custom-provider'
     let index = modelProviders.length + 1
@@ -416,15 +443,17 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
     const nextProvider: ModelProviderProfileV1 = {
       id,
       name: t('modelProviderNewName', { index }),
+      authType: 'api-key',
       apiKey: '',
       baseUrl: 'https://api.example.com/v1',
+      codexAuthPath: '',
       models: []
     }
     updateModelProviders([...modelProviders, nextProvider])
     updateKun({ providerId: id })
   }
   const removeModelProvider = (id: string): void => {
-    if (id === DEFAULT_MODEL_PROVIDER_ID) return
+    if (id === DEFAULT_MODEL_PROVIDER_ID || id === CODEX_OAUTH_MODEL_PROVIDER_ID) return
     const nextProviders = modelProviders.filter((item) => item.id !== id)
     updateModelProviders(nextProviders)
     if (activeProviderId === id) {
@@ -521,18 +550,46 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                               </label>
                             </div>
                             <label className="grid gap-1.5 text-[12px] font-semibold text-ds-muted">
-                              {t('modelProviderApiKey')}
-                              <SecretInput
-                                value={activeProvider.apiKey}
-                                onChange={(value) => updateModelProvider(activeProvider.id, { apiKey: value })}
-                                visible={showApiKey}
-                                onToggleVisibility={() => setShowApiKey((value: boolean) => !value)}
-                                placeholder={t('kunApiKeyPlaceholder')}
-                                autoComplete="off"
-                                showLabel={t('showSecret')}
-                                hideLabel={t('hideSecret')}
-                              />
+                              {t('modelProviderAuthType')}
+                              <select
+                                className={selectControlClass}
+                                value={activeProvider.authType}
+                                onChange={(e) => updateModelProviderAuthType(e.target.value as ModelProviderAuthTypeV1)}
+                              >
+                                <option value="api-key">{t('modelProviderAuthApiKey')}</option>
+                                <option value="codex-oauth">{t('modelProviderAuthCodexOAuth')}</option>
+                              </select>
                             </label>
+                            {activeProvider.authType === 'codex-oauth' ? (
+                              <label className="grid gap-1.5 text-[12px] font-semibold text-ds-muted">
+                                {t('modelProviderCodexAuthPath')}
+                                <input
+                                  className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] font-normal text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30"
+                                  value={activeProvider.codexAuthPath}
+                                  placeholder={DEFAULT_CODEX_AUTH_PATH}
+                                  onChange={(e) => updateModelProvider(activeProvider.id, {
+                                    codexAuthPath: e.target.value
+                                  })}
+                                />
+                                <span className="text-[12px] font-normal leading-5 text-ds-faint">
+                                  {t('modelProviderCodexAuthPathDesc')}
+                                </span>
+                              </label>
+                            ) : (
+                              <label className="grid gap-1.5 text-[12px] font-semibold text-ds-muted">
+                                {t('modelProviderApiKey')}
+                                <SecretInput
+                                  value={activeProvider.apiKey}
+                                  onChange={(value) => updateModelProvider(activeProvider.id, { apiKey: value })}
+                                  visible={showApiKey}
+                                  onToggleVisibility={() => setShowApiKey((value: boolean) => !value)}
+                                  placeholder={t('kunApiKeyPlaceholder')}
+                                  autoComplete="off"
+                                  showLabel={t('showSecret')}
+                                  hideLabel={t('hideSecret')}
+                                />
+                              </label>
+                            )}
                             <label className="grid gap-1.5 text-[12px] font-semibold text-ds-muted">
                               {t('modelProviderBaseUrl')}
                               <input
@@ -547,13 +604,16 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                               <textarea
                                 className="min-h-24 w-full min-w-0 resize-y rounded-xl border border-ds-border bg-ds-card px-3 py-2 font-mono text-[12.5px] font-normal text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30"
                                 value={activeProvider.models.join('\n')}
-                                placeholder="deepseek-v4-pro&#10;deepseek-v4-flash"
+                                placeholder={activeProvider.authType === 'codex-oauth'
+                                  ? DEFAULT_CODEX_OAUTH_MODEL
+                                  : 'deepseek-v4-pro\ndeepseek-v4-flash'}
                                 onChange={(e) => updateModelProvider(activeProvider.id, {
                                   models: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean)
                                 })}
                               />
                             </label>
-                            {activeProvider.id !== DEFAULT_MODEL_PROVIDER_ID ? (
+                            {activeProvider.id !== DEFAULT_MODEL_PROVIDER_ID &&
+                            activeProvider.id !== CODEX_OAUTH_MODEL_PROVIDER_ID ? (
                               <button
                                 type="button"
                                 onClick={() => removeModelProvider(activeProvider.id)}
