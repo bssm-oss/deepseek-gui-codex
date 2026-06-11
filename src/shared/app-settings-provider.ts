@@ -43,8 +43,8 @@ export function defaultModelProviderSettings(): ModelProviderSettingsV1 {
     apiKey: deepseekProvider.apiKey,
     baseUrl: deepseekProvider.baseUrl,
     providers: [
-      defaultSglangProviderProfile(),
       defaultOllamaProviderProfile(),
+      defaultSglangProviderProfile(),
       deepseekProvider,
       defaultCodexOAuthProviderProfile()
     ]
@@ -63,8 +63,8 @@ export function normalizeModelProviderSettings(
   const rawProviders = Array.isArray(input?.providers) ? input.providers : []
   const providersById = new Map<string, ModelProviderProfileV1>()
   const defaultProvider = defaultDeepseekProviderProfile(apiKey, baseUrl)
-  providersById.set(SGLANG_MODEL_PROVIDER_ID, defaultSglangProviderProfile())
   providersById.set(OLLAMA_MODEL_PROVIDER_ID, defaultOllamaProviderProfile())
+  providersById.set(SGLANG_MODEL_PROVIDER_ID, defaultSglangProviderProfile())
   providersById.set(defaultProvider.id, defaultProvider)
   providersById.set(CODEX_OAUTH_MODEL_PROVIDER_ID, defaultCodexOAuthProviderProfile())
   for (const rawProvider of rawProviders) {
