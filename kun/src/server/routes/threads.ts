@@ -21,6 +21,20 @@ import type { RuntimeError } from './runtime-error.js'
 import type { SessionStore } from '../../ports/session-store.js'
 import type { Turn } from '../../contracts/turns.js'
 import type { TurnItem } from '../../contracts/items.js'
+import type { RuntimeEvent } from '../../contracts/events.js'
+
+type HydratableErrorEvent = {
+  kind: 'error' | 'turn_failed' | 'turn_aborted'
+  seq: number
+  timestamp: string
+  threadId: string
+  turnId: string
+  itemId?: string
+  message?: string
+  code?: string
+  details?: unknown
+  severity?: 'info' | 'warning' | 'error'
+}
 
 /**
  * Handlers for the thread CRUD endpoints. The handlers accept a
@@ -90,35 +104,112 @@ export async function getThread(
   }
   let latestSeq = 0
   let sessionItems: TurnItem[] = []
+  let sessionEvents: RuntimeEvent[] = []
   if (sessionStore) {
-    [latestSeq, sessionItems] = await Promise.all([
+    [latestSeq, sessionItems, sessionEvents] = await Promise.all([
       sessionStore.highestSeq(threadId),
-      sessionStore.loadItems(threadId)
+      sessionStore.loadItems(threadId),
+      sessionStore.loadEventsSince(threadId, 0)
     ])
   }
-  const hydratedThread = hydrateThreadItemsFromSession(thread, sessionItems)
+  const hydratedThread = hydrateThreadItemsFromSession(thread, sessionItems, sessionEvents)
   return jsonResponse({
     ...ThreadSchema.parse(hydratedThread),
     latestSeq
   })
 }
 
-function hydrateThreadItemsFromSession(thread: ThreadRecord, items: TurnItem[]): ThreadRecord {
-  if (items.length === 0 || thread.turns.length === 0) return thread
+function hydrateThreadItemsFromSession(
+  thread: ThreadRecord,
+  items: TurnItem[],
+  events: RuntimeEvent[] = []
+): ThreadRecord {
+  if ((items.length === 0 && events.length === 0) || thread.turns.length === 0) return thread
   const itemsByTurn = new Map<string, TurnItem[]>()
   for (const item of items) {
     const turnItems = itemsByTurn.get(item.turnId) ?? []
     turnItems.push(item)
     itemsByTurn.set(item.turnId, turnItems)
   }
+  const errorEventsByTurn = latestErrorEventsByTurn(events)
   let changed = false
   const turns = thread.turns.map((turn): Turn => {
     const sessionTurnItems = itemsByTurn.get(turn.id)
-    if (!sessionTurnItems) return turn
-    changed = true
-    return { ...turn, items: sessionTurnItems }
+    const itemsForTurn = sessionTurnItems ?? turn.items
+    const errorEvent = turn.status === 'failed' || turn.status === 'aborted'
+      ? errorEventsByTurn.get(turn.id)
+      : undefined
+    const hydratedItems = appendErrorItemIfMissing(turn, itemsForTurn, errorEvent)
+    const turnChanged = sessionTurnItems !== undefined || hydratedItems !== turn.items
+    if (turnChanged) changed = true
+    return turnChanged ? { ...turn, items: hydratedItems } : turn
   })
   return changed ? { ...thread, turns } : thread
+}
+
+function latestErrorEventsByTurn(events: RuntimeEvent[]): Map<string, HydratableErrorEvent> {
+  const out = new Map<string, HydratableErrorEvent>()
+  for (const event of events) {
+    if (!event.turnId) continue
+    if (event.kind === 'error') {
+      out.set(event.turnId, {
+        kind: event.kind,
+        seq: event.seq,
+        timestamp: event.timestamp,
+        threadId: event.threadId,
+        turnId: event.turnId,
+        ...(event.itemId ? { itemId: event.itemId } : {}),
+        message: event.message,
+        ...(event.code ? { code: event.code } : {}),
+        ...(event.details !== undefined ? { details: event.details } : {}),
+        ...(event.severity ? { severity: event.severity } : {})
+      })
+      continue
+    }
+    if (event.kind !== 'turn_failed' && event.kind !== 'turn_aborted') continue
+    if (!event.message && !event.code && event.details === undefined) continue
+    out.set(event.turnId, {
+      kind: event.kind,
+      seq: event.seq,
+      timestamp: event.timestamp,
+      threadId: event.threadId,
+      turnId: event.turnId,
+      ...(event.itemId ? { itemId: event.itemId } : {}),
+      ...(event.message ? { message: event.message } : {}),
+      ...(event.code ? { code: event.code } : {}),
+      ...(event.details !== undefined ? { details: event.details } : {}),
+      ...(event.severity ? { severity: event.severity } : {})
+    })
+  }
+  return out
+}
+
+function appendErrorItemIfMissing(
+  turn: Turn,
+  items: TurnItem[],
+  event: HydratableErrorEvent | undefined
+): TurnItem[] {
+  if (items.some((item) => item.kind === 'error')) return items
+  if (!event) return items
+  return [...items, errorItemFromEvent(turn, event)]
+}
+
+function errorItemFromEvent(turn: Turn, event: HydratableErrorEvent): Extract<TurnItem, { kind: 'error' }> {
+  const message = event.message || (event.kind === 'turn_aborted' ? 'Turn aborted.' : 'Turn failed.')
+  return {
+    id: event.itemId ?? `item_${turn.id}_${event.kind}_${event.seq}`,
+    turnId: turn.id,
+    threadId: turn.threadId,
+    role: 'system',
+    status: 'failed',
+    createdAt: event.timestamp,
+    finishedAt: event.timestamp,
+    kind: 'error',
+    message,
+    ...(event.code ? { code: event.code } : {}),
+    ...(event.details !== undefined ? { details: event.details } : {}),
+    ...(event.severity ? { severity: event.severity } : {})
+  }
 }
 
 export async function updateThread(

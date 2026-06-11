@@ -548,6 +548,51 @@ describe('HTTP server', () => {
     })
   })
 
+  it('hydrates failed turn errors from the event log for reopened threads', async () => {
+    const h = buildHarness()
+    await h.threadService.create(
+      { workspace: '/tmp', model: 'deepseek-chat', mode: 'agent' },
+      { id: 'thr_failed_reload', title: 'Failed reload' }
+    )
+    const { turnId } = await h.turnService.startTurn({
+      threadId: 'thr_failed_reload',
+      request: { prompt: 'write a file' }
+    })
+    await h.turnService.finishTurn({
+      threadId: 'thr_failed_reload',
+      turnId,
+      status: 'failed'
+    })
+    await h.sessionStore.appendEvent('thr_failed_reload', {
+      kind: 'error',
+      seq: h.bus.allocateSeq('thr_failed_reload'),
+      timestamp: '2026-06-11T02:06:09.601Z',
+      threadId: 'thr_failed_reload',
+      turnId,
+      message: 'model request failed with status 400',
+      code: 'http_400',
+      severity: 'error'
+    })
+
+    const response = await dispatchRequest(
+      h.router,
+      new Request('http://localhost/v1/threads/thr_failed_reload', {
+        headers: { authorization: 'Bearer tok-1' }
+      })
+    )
+
+    expect(response.status).toBe(200)
+    const body = (await readJson(response)) as {
+      turns: Array<{ items: Array<{ kind: string; message?: string; code?: string }> }>
+    }
+    const items = body.turns.at(-1)?.items ?? []
+    expect(items.at(-1)).toMatchObject({
+      kind: 'error',
+      message: 'model request failed with status 400',
+      code: 'http_400'
+    })
+  })
+
   it('persists GUI plan context from start-turn requests', async () => {
     const h = buildHarness()
     const create = await dispatchRequest(
