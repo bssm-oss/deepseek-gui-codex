@@ -6,9 +6,14 @@ import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import {
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
   defaultKunTokenEconomySettings,
+  getModelProviderProfile,
   isKunRuntimeInsecure,
   resolveKunRuntimeSettings,
+  SGLANG_MODEL_PROVIDER_ID,
   type KunRuntimeSettingsV1,
   type AppSettingsV1
 } from '../shared/app-settings'
@@ -53,6 +58,11 @@ const KUN_STOP_GRACE_MS = 5_000
 const KUN_STOP_FORCE_MS = 1_000
 const STDERR_TAIL_MAX_CHARS = 4_000
 const GUI_SCHEDULE_MCP_TIMEOUT_MS = 5_000
+const parsedSglangFastFallbackMs = Number(process.env.DEEPSEEK_GUI_SGLANG_FAST_FALLBACK_MS)
+const SGLANG_FAST_FALLBACK_MS = Number.isFinite(parsedSglangFastFallbackMs) && parsedSglangFastFallbackMs > 0
+  ? parsedSglangFastFallbackMs
+  : 5_000
+const OLLAMA_HEALTH_TIMEOUT_MS = 1_000
 const DEFAULT_KUN_MODEL_PROFILES: Record<string, Record<string, unknown>> = {
   'deepseek-v4-pro': {
     contextWindowTokens: 1_000_000,
@@ -171,6 +181,10 @@ function createKunChildLogCapture(pid: number | undefined): KunChildLogCapture {
   }
 }
 
+function logKunRuntimeFallback(message: string): void {
+  void appendManagedLogLine('kun', formatKunLogLine('lifecycle', undefined, message))
+}
+
 function appRoot(): string {
   return app.isPackaged
     ? app.getAppPath().replace(/app\.asar$/, 'app.asar.unpacked')
@@ -196,14 +210,14 @@ export function isKunChildRunning(): boolean {
 }
 
 export async function startKunChild(settings: AppSettingsV1): Promise<void> {
-  const runtime = resolveKunRuntimeSettings(settings)
+  const requestedRuntime = resolveKunRuntimeSettings(settings)
   if (isKunChildRunning()) return
-  if (!runtime.autoStart) return
+  if (!requestedRuntime.autoStart) return
+  const runtime = await resolveFastLaunchRuntime(settings, requestedRuntime)
   if (childLogCapture) {
     await childLogCapture.close()
     childLogCapture = null
   }
-  await ensureSglangServerForRuntime(runtime)
   const root = appRoot()
   const resolution = resolveKunExecutable(root, runtime.binaryPath)
   if (resolution.command === process.execPath && !existsSync(resolution.args[0])) {
@@ -275,6 +289,68 @@ export async function startKunChild(settings: AppSettingsV1): Promise<void> {
   })
   await waitForKunStartup(startedChild)
   startedLogCapture.logLifecycle(`ready marker received on port ${runtime.port}`)
+}
+
+async function resolveFastLaunchRuntime(
+  settings: AppSettingsV1,
+  runtime: KunRuntimeSettingsV1
+): Promise<KunRuntimeSettingsV1> {
+  if (!isSglangRuntime(runtime)) return runtime
+
+  try {
+    await ensureSglangServerForRuntime(runtime, { startupTimeoutMs: SGLANG_FAST_FALLBACK_MS })
+    return runtime
+  } catch (error) {
+    const fallback = buildOllamaFallbackRuntime(settings, runtime)
+    if (fallback && await isOllamaRuntimeReady(fallback)) {
+      const reason = error instanceof Error ? error.message.split('\n')[0] : String(error)
+      logKunRuntimeFallback(
+        `SGLang is warming up or unavailable; starting Kun with Ollama fallback (${fallback.baseUrl}, ${fallback.model}). Reason: ${reason}`
+      )
+      return fallback
+    }
+    throw error
+  }
+}
+
+function isSglangRuntime(runtime: KunRuntimeSettingsV1): boolean {
+  return runtime.modelProviderAuthType === 'none' && runtime.providerId === SGLANG_MODEL_PROVIDER_ID
+}
+
+export function buildOllamaFallbackRuntime(
+  settings: AppSettingsV1,
+  runtime: KunRuntimeSettingsV1
+): KunRuntimeSettingsV1 | null {
+  const provider = getModelProviderProfile(settings, OLLAMA_MODEL_PROVIDER_ID)
+  if (provider.id !== OLLAMA_MODEL_PROVIDER_ID || provider.authType !== 'none') return null
+  const model = provider.models.includes(DEFAULT_OLLAMA_MODEL)
+    ? DEFAULT_OLLAMA_MODEL
+    : provider.models[0]?.trim() || DEFAULT_OLLAMA_MODEL
+  return {
+    ...runtime,
+    providerId: OLLAMA_MODEL_PROVIDER_ID,
+    modelProviderAuthType: 'none',
+    codexAuthPath: '',
+    apiKey: '',
+    baseUrl: provider.baseUrl.trim() || DEFAULT_OLLAMA_BASE_URL,
+    model
+  }
+}
+
+async function isOllamaRuntimeReady(runtime: KunRuntimeSettingsV1): Promise<boolean> {
+  const baseUrl = runtime.baseUrl.trim().replace(/\/+$/, '')
+  if (!baseUrl) return false
+  try {
+    const res = await fetch(`${baseUrl}/api/tags`, {
+      signal: AbortSignal.timeout(OLLAMA_HEALTH_TIMEOUT_MS)
+    })
+    if (!res.ok) return false
+    const body = await res.json().catch(() => null) as { models?: Array<{ name?: unknown; model?: unknown }> } | null
+    const models = Array.isArray(body?.models) ? body.models : []
+    return models.some((item) => item.name === runtime.model || item.model === runtime.model)
+  } catch {
+    return false
+  }
 }
 
 export async function syncGuiManagedKunConfig(

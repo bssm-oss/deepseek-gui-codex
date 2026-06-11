@@ -21,6 +21,10 @@ const SGLANG_STDERR_TAIL_MAX_CHARS = 6_000
 const DEFAULT_SGLANG_PYTHON = join(homedir(), '.deepseekgui', 'sglang-metal', 'bin', 'python')
 const SGLANG_LAUNCHER_FILE = 'sglang-gemma4-text-launcher.py'
 
+export type SglangRuntimeEnsureOptions = {
+  startupTimeoutMs?: number
+}
+
 let child: ChildProcess | null = null
 let stderrTail = ''
 
@@ -146,7 +150,10 @@ function isSglangSelected(runtime: KunRuntimeSettingsV1): boolean {
   return runtime.modelProviderAuthType === 'none' && runtime.providerId === SGLANG_MODEL_PROVIDER_ID
 }
 
-export async function ensureSglangServerForRuntime(runtime: KunRuntimeSettingsV1): Promise<void> {
+export async function ensureSglangServerForRuntime(
+  runtime: KunRuntimeSettingsV1,
+  options: SglangRuntimeEnsureOptions = {}
+): Promise<void> {
   if (!isSglangSelected(runtime)) return
 
   const endpoint = parseSglangEndpoint(runtime.baseUrl)
@@ -162,7 +169,7 @@ export async function ensureSglangServerForRuntime(runtime: KunRuntimeSettingsV1
   }
 
   if (child && child.exitCode === null && child.signalCode === null) {
-    await waitForSglangServer(endpoint, runtime.model)
+    await waitForSglangServer(endpoint, runtime.model, undefined, options.startupTimeoutMs)
     return
   }
 
@@ -185,7 +192,9 @@ export async function ensureSglangServerForRuntime(runtime: KunRuntimeSettingsV1
     env: {
       ...process.env,
       PYTHONUNBUFFERED: '1',
-      SGLANG_USE_MLX: '1'
+      SGLANG_USE_MLX: '1',
+      HF_HUB_ENABLE_HF_TRANSFER: process.env.HF_HUB_ENABLE_HF_TRANSFER || '1',
+      HF_XET_HIGH_PERFORMANCE: process.env.HF_XET_HIGH_PERFORMANCE || '1'
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false
@@ -203,16 +212,17 @@ export async function ensureSglangServerForRuntime(runtime: KunRuntimeSettingsV1
     logLifecycle(`process error: ${error instanceof Error ? error.message : String(error)}`, pid)
   })
 
-  await waitForSglangServer(endpoint, runtime.model, startedChild)
+  await waitForSglangServer(endpoint, runtime.model, startedChild, options.startupTimeoutMs)
   logLifecycle(`ready on ${endpoint.baseUrl} as ${runtime.model}`, pid)
 }
 
 async function waitForSglangServer(
   endpoint: SglangEndpoint,
   model: string,
-  process?: ChildProcess
+  process?: ChildProcess,
+  startupTimeoutMs = SGLANG_STARTUP_TIMEOUT_MS
 ): Promise<void> {
-  const deadline = Date.now() + Math.max(1_000, SGLANG_STARTUP_TIMEOUT_MS)
+  const deadline = Date.now() + Math.max(1_000, startupTimeoutMs)
   while (Date.now() <= deadline) {
     if (process && process.exitCode !== null) {
       throw new Error(

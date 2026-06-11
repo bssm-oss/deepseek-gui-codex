@@ -37,6 +37,7 @@ DeepSeek GUI는 개발자와 AI 작업자를 위한 로컬 데스크톱 작업�
 - **DeepSeek API**: 기존 DeepSeek API key 기반 모델 호출을 유지합니다.
 - **Codex OAuth**: 로컬 Codex OAuth 인증을 읽어 Codex 모델 provider를 사용할 수 있습니다.
 - **Turbo Engine: SGLang**: 로컬 SGLang/MLX 서버를 기본 provider로 사용하고, 필요 시 앱이 `jedisct1/gemma-4-12B-it-txt-mlx-8bit` 체크포인트를 `gemma4-12b` served model로 자동 확인/기동합니다.
+- **빠른 시작 fallback**: SGLang이 첫 실행 다운로드나 워밍업 중이면 앱은 Ollama `gemma4:12b`가 준비된 경우 즉시 그쪽으로 Kun을 시작하고, SGLang은 다음 실행을 위해 계속 준비합니다.
 - **Ollama Gemma 선택 옵션**: SGLang 대신 Ollama의 `gemma4:12b` 모델을 선택할 수 있습니다.
 - **한국어 UI**: 기본 언어가 한국어이며 초기 설정과 설정 화면도 한국어를 우선합니다.
 - **작업 승인/권한**: 파일 쓰기와 명령 실행 범위를 승인 정책과 sandbox 설정으로 제어합니다.
