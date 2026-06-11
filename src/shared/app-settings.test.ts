@@ -5,6 +5,9 @@ import {
   kunSettingsPatch,
   DEFAULT_KUN_DATA_DIR,
   DEFAULT_KUN_MODEL,
+  DEFAULT_KUN_MODEL_PROVIDER_ID,
+  DEFAULT_KUN_PROVIDER_MODEL,
+  DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_APPROVAL_POLICY,
   DEFAULT_WEIXIN_BRIDGE_RPC_URL,
   DEFAULT_SCHEDULE_INTERNAL_PORT,
@@ -82,8 +85,12 @@ describe('kun defaults', () => {
     expect(defaultKunRuntimeSettings().dataDir).toBe(DEFAULT_KUN_DATA_DIR)
   })
 
-  it('defaults the assistant model to v4 pro', () => {
-    expect(defaultKunRuntimeSettings().model).toBe(DEFAULT_KUN_MODEL)
+  it('defaults the assistant runtime to the SGLang local provider model', () => {
+    expect(defaultKunRuntimeSettings()).toMatchObject({
+      providerId: DEFAULT_KUN_MODEL_PROVIDER_ID,
+      modelProviderAuthType: 'none',
+      model: DEFAULT_KUN_PROVIDER_MODEL
+    })
   })
 
   it('defaults approval policy to auto', () => {
@@ -657,6 +664,8 @@ describe('write inline completion runtime config', () => {
     const state = settings()
     state.provider.apiKey = 'general-key'
     state.provider.baseUrl = 'https://general.example/v1'
+    state.agents.kun.providerId = DEFAULT_MODEL_PROVIDER_ID
+    state.agents.kun.modelProviderAuthType = 'api-key'
     state.agents.kun.model = 'deepseek-chat'
     const legacyInlineCompletion = { ...state.write.inlineCompletion } as Partial<AppSettingsV1['write']['inlineCompletion']>
     delete legacyInlineCompletion.apiKey

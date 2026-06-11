@@ -612,7 +612,7 @@ async function ensureKunRuntime(settings: AppSettingsV1): Promise<void> {
   if (!hasModelCredentials) {
     throw runtimeJsonError(
       'missing_api_key',
-      'Configure a DeepSeek API key or Codex OAuth before the GUI can start Kun.'
+      'Configure a model provider in Settings. Turbo Engine: SGLang and Ollama need a local server URL; DeepSeek needs an API key; ChatGPT needs Codex OAuth.'
     )
   }
   if (!runtime.autoStart) {

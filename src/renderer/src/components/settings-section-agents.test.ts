@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { defaultKunRuntimeSettings } from '@shared/app-settings'
+import { DEFAULT_MODEL_PROVIDER_ID, defaultKunRuntimeSettings } from '@shared/app-settings'
 import { AgentsSettingsSection } from './settings-section-agents'
 
 const labels: Record<string, string> = {
@@ -313,7 +313,14 @@ describe('AgentsSettingsSection Kun diagnostics smoke', () => {
   })
 
   it('shows DeepSeek V4 model compaction thresholds from the model profile', () => {
-    const html = renderToStaticMarkup(createElement(AgentsSettingsSection, { ctx: baseCtx() }))
+    const ctx = baseCtx()
+    ctx.kun = {
+      ...(ctx.kun as ReturnType<typeof defaultKunRuntimeSettings>),
+      providerId: DEFAULT_MODEL_PROVIDER_ID,
+      modelProviderAuthType: 'api-key',
+      model: 'deepseek-v4-pro'
+    }
+    const html = renderToStaticMarkup(createElement(AgentsSettingsSection, { ctx }))
 
     expect(html).toContain('Current model context policy')
     expect(html).toContain('deepseek-v4-pro')

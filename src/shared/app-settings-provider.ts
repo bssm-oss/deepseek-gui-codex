@@ -4,10 +4,16 @@ import {
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_DEEPSEEK_BASE_URL,
+  DEFAULT_KUN_MODEL,
+  DEFAULT_KUN_MODEL_PROVIDER_ID,
+  DEFAULT_KUN_PROVIDER_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
+  DEFAULT_SGLANG_BASE_URL,
+  DEFAULT_SGLANG_MODEL,
   OLLAMA_MODEL_PROVIDER_ID,
+  SGLANG_MODEL_PROVIDER_ID,
   type AppSettingsV1,
   type KunRuntimeSettingsV1,
   type ModelProviderAuthTypeV1,
@@ -22,6 +28,7 @@ import { DEFAULT_COMPOSER_MODEL_IDS } from './default-composer-models'
 
 const DEFAULT_MODEL_PROVIDER_NAME = 'DeepSeek'
 const CODEX_OAUTH_MODEL_PROVIDER_NAME = 'ChatGPT'
+const SGLANG_MODEL_PROVIDER_NAME = 'Turbo Engine: SGLang'
 const OLLAMA_MODEL_PROVIDER_NAME = 'Gemma (Ollama)'
 const CODEX_OAUTH_MODEL_IDS = [
   DEFAULT_CODEX_OAUTH_MODEL,
@@ -31,11 +38,16 @@ const CODEX_OAUTH_MODEL_IDS = [
 ] as const
 
 export function defaultModelProviderSettings(): ModelProviderSettingsV1 {
-  const defaultProvider = defaultDeepseekProviderProfile('', DEFAULT_DEEPSEEK_BASE_URL)
+  const deepseekProvider = defaultDeepseekProviderProfile('', DEFAULT_DEEPSEEK_BASE_URL)
   return {
-    apiKey: defaultProvider.apiKey,
-    baseUrl: defaultProvider.baseUrl,
-    providers: [defaultProvider, defaultOllamaProviderProfile(), defaultCodexOAuthProviderProfile()]
+    apiKey: deepseekProvider.apiKey,
+    baseUrl: deepseekProvider.baseUrl,
+    providers: [
+      defaultSglangProviderProfile(),
+      defaultOllamaProviderProfile(),
+      deepseekProvider,
+      defaultCodexOAuthProviderProfile()
+    ]
   }
 }
 
@@ -51,8 +63,9 @@ export function normalizeModelProviderSettings(
   const rawProviders = Array.isArray(input?.providers) ? input.providers : []
   const providersById = new Map<string, ModelProviderProfileV1>()
   const defaultProvider = defaultDeepseekProviderProfile(apiKey, baseUrl)
-  providersById.set(defaultProvider.id, defaultProvider)
+  providersById.set(SGLANG_MODEL_PROVIDER_ID, defaultSglangProviderProfile())
   providersById.set(OLLAMA_MODEL_PROVIDER_ID, defaultOllamaProviderProfile())
+  providersById.set(defaultProvider.id, defaultProvider)
   providersById.set(CODEX_OAUTH_MODEL_PROVIDER_ID, defaultCodexOAuthProviderProfile())
   for (const rawProvider of rawProviders) {
     const provider = normalizeModelProviderProfile(rawProvider)
@@ -111,8 +124,31 @@ export function getModelProviderProfile(
   providerId: string | undefined
 ): ModelProviderProfileV1 {
   const provider = getModelProviderSettings(settings)
-  const id = normalizeProviderId(providerId || DEFAULT_MODEL_PROVIDER_ID)
+  const id = normalizeProviderId(providerId || DEFAULT_KUN_MODEL_PROVIDER_ID)
   return provider.providers.find((profile) => profile.id === id) ?? provider.providers[0] ?? defaultDeepseekProviderProfile(provider.apiKey, provider.baseUrl)
+}
+
+export function defaultModelForProviderProfile(
+  profile: ModelProviderProfileV1 | undefined
+): string {
+  if (!profile) return DEFAULT_KUN_PROVIDER_MODEL
+  if (profile.id === CODEX_OAUTH_MODEL_PROVIDER_ID) {
+    return profile.models.includes(DEFAULT_CODEX_OAUTH_MODEL)
+      ? DEFAULT_CODEX_OAUTH_MODEL
+      : profile.models[0] ?? DEFAULT_CODEX_OAUTH_MODEL
+  }
+  if (profile.id === SGLANG_MODEL_PROVIDER_ID) {
+    return profile.models.includes(DEFAULT_SGLANG_MODEL)
+      ? DEFAULT_SGLANG_MODEL
+      : profile.models[0] ?? DEFAULT_SGLANG_MODEL
+  }
+  if (profile.id === OLLAMA_MODEL_PROVIDER_ID) {
+    return profile.models.includes(DEFAULT_OLLAMA_MODEL)
+      ? DEFAULT_OLLAMA_MODEL
+      : profile.models[0] ?? DEFAULT_OLLAMA_MODEL
+  }
+  if (profile.id === DEFAULT_MODEL_PROVIDER_ID) return DEFAULT_KUN_MODEL
+  return profile.models[0] ?? DEFAULT_KUN_PROVIDER_MODEL
 }
 
 export function listModelProviderModelIds(settings: AppSettingsV1): string[] {
@@ -136,7 +172,7 @@ export function resolveKunRuntimeSettings(settings: AppSettingsV1): KunRuntimeSe
     authType === 'codex-oauth'
       ? DEFAULT_CODEX_OAUTH_BASE_URL
       : authType === 'none'
-        ? DEFAULT_OLLAMA_BASE_URL
+        ? defaultNoAuthProviderBaseUrl(provider.id)
         : DEFAULT_DEEPSEEK_BASE_URL
   )
 
@@ -149,8 +185,8 @@ export function resolveKunRuntimeSettings(settings: AppSettingsV1): KunRuntimeSe
     apiKey: authType === 'api-key' ? runtimeApiKey || provider.apiKey.trim() : '',
     baseUrl:
       runtimeBaseUrl && runtimeBaseUrl !== DEFAULT_DEEPSEEK_BASE_URL
-        ? normalizeProviderBaseUrl(runtimeBaseUrl, authType)
-        : normalizeProviderBaseUrl(providerBaseUrl, authType)
+        ? normalizeProviderBaseUrl(runtimeBaseUrl, authType, provider.id)
+        : normalizeProviderBaseUrl(providerBaseUrl, authType, provider.id)
   }
 }
 
@@ -192,6 +228,18 @@ function defaultCodexOAuthProviderProfile(): ModelProviderProfileV1 {
   }
 }
 
+function defaultSglangProviderProfile(): ModelProviderProfileV1 {
+  return {
+    id: SGLANG_MODEL_PROVIDER_ID,
+    name: SGLANG_MODEL_PROVIDER_NAME,
+    authType: 'none',
+    apiKey: '',
+    baseUrl: DEFAULT_SGLANG_BASE_URL,
+    codexAuthPath: '',
+    models: [DEFAULT_SGLANG_MODEL]
+  }
+}
+
 function defaultOllamaProviderProfile(): ModelProviderProfileV1 {
   return {
     id: OLLAMA_MODEL_PROVIDER_ID,
@@ -213,11 +261,11 @@ function normalizeModelProviderProfile(
   const authType = normalizeProviderAuthType(input?.authType, id)
   const baseUrl =
     typeof input?.baseUrl === 'string' && input.baseUrl.trim()
-      ? normalizeProviderBaseUrl(input.baseUrl, authType)
+      ? normalizeProviderBaseUrl(input.baseUrl, authType, id)
       : authType === 'codex-oauth'
         ? DEFAULT_CODEX_OAUTH_BASE_URL
         : authType === 'none'
-          ? DEFAULT_OLLAMA_BASE_URL
+          ? defaultNoAuthProviderBaseUrl(id)
           : DEFAULT_DEEPSEEK_BASE_URL
   const models = normalizeProviderModels(input?.models)
   return {
@@ -236,7 +284,7 @@ function normalizeModelProviderProfile(
       : authType === 'codex-oauth'
         ? [...CODEX_OAUTH_MODEL_IDS]
         : authType === 'none'
-          ? [DEFAULT_OLLAMA_MODEL]
+          ? defaultNoAuthProviderModels(id)
           : []
   }
 }
@@ -245,20 +293,37 @@ function normalizeProviderAuthType(value: unknown, id: string): ModelProviderAut
   if (value === 'codex-oauth') return 'codex-oauth'
   if (value === 'none') return 'none'
   if (id === CODEX_OAUTH_MODEL_PROVIDER_ID) return 'codex-oauth'
+  if (id === SGLANG_MODEL_PROVIDER_ID) return 'none'
   if (id === OLLAMA_MODEL_PROVIDER_ID) return 'none'
   return 'api-key'
 }
 
-function normalizeProviderBaseUrl(baseUrl: string, authType: ModelProviderAuthTypeV1): string {
+function normalizeProviderBaseUrl(
+  baseUrl: string,
+  authType: ModelProviderAuthTypeV1,
+  providerId: string
+): string {
   if (authType === 'codex-oauth') {
     const trimmed = baseUrl.trim().replace(/\/+$/, '')
     return trimmed || DEFAULT_CODEX_OAUTH_BASE_URL
   }
   if (authType === 'none') {
     const trimmed = baseUrl.trim().replace(/\/+$/, '')
-    return trimmed || DEFAULT_OLLAMA_BASE_URL
+    return trimmed || defaultNoAuthProviderBaseUrl(providerId)
   }
   return normalizeDeepseekBaseUrl(baseUrl)
+}
+
+function defaultNoAuthProviderBaseUrl(providerId: string): string {
+  return providerId === OLLAMA_MODEL_PROVIDER_ID
+    ? DEFAULT_OLLAMA_BASE_URL
+    : DEFAULT_SGLANG_BASE_URL
+}
+
+function defaultNoAuthProviderModels(providerId: string): string[] {
+  return providerId === OLLAMA_MODEL_PROVIDER_ID
+    ? [DEFAULT_OLLAMA_MODEL]
+    : [DEFAULT_SGLANG_MODEL]
 }
 
 function normalizeProviderModels(models: unknown): string[] {

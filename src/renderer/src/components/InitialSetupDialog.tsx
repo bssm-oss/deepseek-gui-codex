@@ -6,9 +6,12 @@ import {
   DEFAULT_CODEX_AUTH_PATH,
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_DEEPSEEK_BASE_URL,
+  DEFAULT_KUN_MODEL_PROVIDER_ID,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_SGLANG_BASE_URL,
   OLLAMA_MODEL_PROVIDER_ID,
+  SGLANG_MODEL_PROVIDER_ID,
   getActiveAgentApiKey,
   getModelProviderSettings,
   normalizeAppSettings,
@@ -52,7 +55,7 @@ export function InitialSetupDialog(): ReactElement {
   const formRef = useRef<AppSettingsV1 | null>(null)
   const isPreview = initialSetupMode === 'preview'
   const providerSettings = form ? getModelProviderSettings(form) : null
-  const selectedProviderId = form?.agents.kun.providerId?.trim() || DEFAULT_MODEL_PROVIDER_ID
+  const selectedProviderId = form?.agents.kun.providerId?.trim() || DEFAULT_KUN_MODEL_PROVIDER_ID
   const selectedProvider = providerSettings?.providers.find((provider) =>
     provider.id === selectedProviderId
   ) ?? null
@@ -117,11 +120,11 @@ export function InitialSetupDialog(): ReactElement {
     })
   }
 
-  const handleAuthTypeChange = (authType: ModelProviderAuthTypeV1): void => {
+  const handleProviderChoice = (providerId: string, authType: ModelProviderAuthTypeV1): void => {
     const current = formRef.current
     if (!current) return
     setError(null)
-    updateForm(buildInitialSetupProviderPatch(current, authType))
+    updateForm(buildInitialSetupProviderPatch(current, authType, providerId))
   }
 
   const handleThemeChange = (theme: ThemePref) => {
@@ -144,11 +147,11 @@ export function InitialSetupDialog(): ReactElement {
   const handleSave = async () => {
     const current = formRef.current
     if (!current) return
-    const currentAuthType = current.agents.kun.providerId === CODEX_OAUTH_MODEL_PROVIDER_ID
-      ? 'codex-oauth'
-      : current.agents.kun.providerId === OLLAMA_MODEL_PROVIDER_ID
-        ? 'none'
-      : 'api-key'
+    const currentProviderId = current.agents.kun.providerId?.trim() || DEFAULT_KUN_MODEL_PROVIDER_ID
+    const currentProvider = getModelProviderSettings(current).providers.find((provider) =>
+      provider.id === currentProviderId
+    )
+    const currentAuthType = currentProvider?.authType ?? 'api-key'
     if (currentAuthType === 'api-key' && !getActiveAgentApiKey(current).trim()) {
       setError(t('firstRunApiKeyValidation'))
       return
@@ -197,6 +200,10 @@ export function InitialSetupDialog(): ReactElement {
         ? 'border-[#1388ff] bg-[#1388ff]/[0.07] text-[#1377df] shadow-[0_0_0_1px_rgba(19,136,255,0.12),0_8px_18px_rgba(19,136,255,0.07)] dark:border-[#3aa0ff] dark:bg-[#3aa0ff]/[0.12] dark:text-[#88c8ff]'
         : 'border-slate-300/80 bg-white/72 text-slate-600 hover:border-slate-400/80 hover:bg-white dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:border-white/16 dark:hover:bg-white/[0.055]'
     ].join(' ')
+  const localBaseUrlPlaceholder =
+    selectedProviderId === OLLAMA_MODEL_PROVIDER_ID
+      ? DEFAULT_OLLAMA_BASE_URL
+      : DEFAULT_SGLANG_BASE_URL
   return (
     <div className="ds-no-drag fixed inset-0 z-50 overflow-y-auto bg-[#eef2fb]/45 p-3 backdrop-blur-[18px] dark:bg-black/62 dark:backdrop-blur-[22px] sm:p-6">
       <div className="flex min-h-full items-center justify-center">
@@ -281,26 +288,26 @@ export function InitialSetupDialog(): ReactElement {
             <label className={labelClass}>
               {t('firstRunProviderTitle')}
             </label>
-            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[560px]:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[560px]:grid-cols-2">
               <button
                 type="button"
-                onClick={() => handleAuthTypeChange('api-key')}
-                className={providerChoiceClass(selectedAuthType === 'api-key')}
+                onClick={() => handleProviderChoice(SGLANG_MODEL_PROVIDER_ID, 'none')}
+                className={providerChoiceClass(selectedProviderId === SGLANG_MODEL_PROVIDER_ID)}
               >
-                <KeyRound className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                <Cpu className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 <span className="grid min-w-0 gap-1">
                   <span className="text-[14px] font-semibold leading-5">
-                    {t('firstRunProviderDeepseek')}
+                    {t('firstRunProviderSglang')}
                   </span>
                   <span className="text-[12.5px] leading-5 text-slate-500 dark:text-slate-400">
-                    {t('firstRunProviderDeepseekDesc')}
+                    {t('firstRunProviderSglangDesc')}
                   </span>
                 </span>
               </button>
               <button
                 type="button"
-                onClick={() => handleAuthTypeChange('none')}
-                className={providerChoiceClass(selectedAuthType === 'none')}
+                onClick={() => handleProviderChoice(OLLAMA_MODEL_PROVIDER_ID, 'none')}
+                className={providerChoiceClass(selectedProviderId === OLLAMA_MODEL_PROVIDER_ID)}
               >
                 <Cpu className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 <span className="grid min-w-0 gap-1">
@@ -314,8 +321,23 @@ export function InitialSetupDialog(): ReactElement {
               </button>
               <button
                 type="button"
-                onClick={() => handleAuthTypeChange('codex-oauth')}
-                className={providerChoiceClass(selectedAuthType === 'codex-oauth')}
+                onClick={() => handleProviderChoice(DEFAULT_MODEL_PROVIDER_ID, 'api-key')}
+                className={providerChoiceClass(selectedProviderId === DEFAULT_MODEL_PROVIDER_ID)}
+              >
+                <KeyRound className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+                <span className="grid min-w-0 gap-1">
+                  <span className="text-[14px] font-semibold leading-5">
+                    {t('firstRunProviderDeepseek')}
+                  </span>
+                  <span className="text-[12.5px] leading-5 text-slate-500 dark:text-slate-400">
+                    {t('firstRunProviderDeepseekDesc')}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProviderChoice(CODEX_OAUTH_MODEL_PROVIDER_ID, 'codex-oauth')}
+                className={providerChoiceClass(selectedProviderId === CODEX_OAUTH_MODEL_PROVIDER_ID)}
               >
                 <ShieldCheck className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 <span className="grid min-w-0 gap-1">
@@ -359,7 +381,7 @@ export function InitialSetupDialog(): ReactElement {
               </>
             ) : selectedAuthType === 'none' ? (
               <div className="rounded-xl border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-[13px] leading-6 text-slate-500 dark:border-white/10 dark:bg-white/[0.035] dark:text-slate-400">
-                {t('firstRunGemmaHint')}
+                {t(selectedProviderId === OLLAMA_MODEL_PROVIDER_ID ? 'firstRunGemmaHint' : 'firstRunSglangHint')}
               </div>
             ) : (
               <>
@@ -413,7 +435,7 @@ export function InitialSetupDialog(): ReactElement {
               placeholder={selectedAuthType === 'codex-oauth'
                 ? DEFAULT_CODEX_OAUTH_BASE_URL
                 : selectedAuthType === 'none'
-                  ? DEFAULT_OLLAMA_BASE_URL
+                  ? localBaseUrlPlaceholder
                   : DEFAULT_DEEPSEEK_BASE_URL}
               className={fieldClass}
             />
