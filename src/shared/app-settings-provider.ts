@@ -8,10 +8,13 @@ import {
   DEFAULT_KUN_MODEL_PROVIDER_ID,
   DEFAULT_KUN_PROVIDER_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_SGLANG_BASE_URL,
   DEFAULT_SGLANG_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   type AppSettingsV1,
@@ -28,6 +31,7 @@ import { DEFAULT_COMPOSER_MODEL_IDS } from './default-composer-models'
 
 const DEFAULT_MODEL_PROVIDER_NAME = 'DeepSeek'
 const CODEX_OAUTH_MODEL_PROVIDER_NAME = 'ChatGPT'
+const MLX_LM_MODEL_PROVIDER_NAME = 'Turbo Engine: MLX-LM'
 const SGLANG_MODEL_PROVIDER_NAME = 'Turbo Engine: SGLang'
 const OLLAMA_MODEL_PROVIDER_NAME = 'Gemma (Ollama)'
 const CODEX_OAUTH_MODEL_IDS = [
@@ -43,6 +47,7 @@ export function defaultModelProviderSettings(): ModelProviderSettingsV1 {
     apiKey: deepseekProvider.apiKey,
     baseUrl: deepseekProvider.baseUrl,
     providers: [
+      defaultMlxLmProviderProfile(),
       defaultSglangProviderProfile(),
       defaultOllamaProviderProfile(),
       deepseekProvider,
@@ -63,6 +68,7 @@ export function normalizeModelProviderSettings(
   const rawProviders = Array.isArray(input?.providers) ? input.providers : []
   const providersById = new Map<string, ModelProviderProfileV1>()
   const defaultProvider = defaultDeepseekProviderProfile(apiKey, baseUrl)
+  providersById.set(MLX_LM_MODEL_PROVIDER_ID, defaultMlxLmProviderProfile())
   providersById.set(SGLANG_MODEL_PROVIDER_ID, defaultSglangProviderProfile())
   providersById.set(OLLAMA_MODEL_PROVIDER_ID, defaultOllamaProviderProfile())
   providersById.set(defaultProvider.id, defaultProvider)
@@ -136,6 +142,11 @@ export function defaultModelForProviderProfile(
     return profile.models.includes(DEFAULT_CODEX_OAUTH_MODEL)
       ? DEFAULT_CODEX_OAUTH_MODEL
       : profile.models[0] ?? DEFAULT_CODEX_OAUTH_MODEL
+  }
+  if (profile.id === MLX_LM_MODEL_PROVIDER_ID) {
+    return profile.models.includes(DEFAULT_MLX_LM_MODEL)
+      ? DEFAULT_MLX_LM_MODEL
+      : profile.models[0] ?? DEFAULT_MLX_LM_MODEL
   }
   if (profile.id === SGLANG_MODEL_PROVIDER_ID) {
     return profile.models.includes(DEFAULT_SGLANG_MODEL)
@@ -228,6 +239,18 @@ function defaultCodexOAuthProviderProfile(): ModelProviderProfileV1 {
   }
 }
 
+function defaultMlxLmProviderProfile(): ModelProviderProfileV1 {
+  return {
+    id: MLX_LM_MODEL_PROVIDER_ID,
+    name: MLX_LM_MODEL_PROVIDER_NAME,
+    authType: 'none',
+    apiKey: '',
+    baseUrl: DEFAULT_MLX_LM_BASE_URL,
+    codexAuthPath: '',
+    models: [DEFAULT_MLX_LM_MODEL]
+  }
+}
+
 function defaultSglangProviderProfile(): ModelProviderProfileV1 {
   return {
     id: SGLANG_MODEL_PROVIDER_ID,
@@ -293,6 +316,7 @@ function normalizeProviderAuthType(value: unknown, id: string): ModelProviderAut
   if (value === 'codex-oauth') return 'codex-oauth'
   if (value === 'none') return 'none'
   if (id === CODEX_OAUTH_MODEL_PROVIDER_ID) return 'codex-oauth'
+  if (id === MLX_LM_MODEL_PROVIDER_ID) return 'none'
   if (id === SGLANG_MODEL_PROVIDER_ID) return 'none'
   if (id === OLLAMA_MODEL_PROVIDER_ID) return 'none'
   return 'api-key'
@@ -315,15 +339,15 @@ function normalizeProviderBaseUrl(
 }
 
 function defaultNoAuthProviderBaseUrl(providerId: string): string {
-  return providerId === OLLAMA_MODEL_PROVIDER_ID
-    ? DEFAULT_OLLAMA_BASE_URL
-    : DEFAULT_SGLANG_BASE_URL
+  if (providerId === OLLAMA_MODEL_PROVIDER_ID) return DEFAULT_OLLAMA_BASE_URL
+  if (providerId === SGLANG_MODEL_PROVIDER_ID) return DEFAULT_SGLANG_BASE_URL
+  return DEFAULT_MLX_LM_BASE_URL
 }
 
 function defaultNoAuthProviderModels(providerId: string): string[] {
-  return providerId === OLLAMA_MODEL_PROVIDER_ID
-    ? [DEFAULT_OLLAMA_MODEL]
-    : [DEFAULT_SGLANG_MODEL]
+  if (providerId === OLLAMA_MODEL_PROVIDER_ID) return [DEFAULT_OLLAMA_MODEL]
+  if (providerId === SGLANG_MODEL_PROVIDER_ID) return [DEFAULT_SGLANG_MODEL]
+  return [DEFAULT_MLX_LM_MODEL]
 }
 
 function normalizeProviderModels(models: unknown): string[] {

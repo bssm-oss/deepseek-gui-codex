@@ -41,6 +41,9 @@ Kun은 모델 호출을 adapter로 분리합니다.
 
 - DeepSeek 호환 API client
 - Codex OAuth client
+- 로컬 no-auth OpenAI 호환 server client
+
+로컬 Gemma provider는 Kun을 대체하는 두 번째 agent runtime이 아닙니다. MLX-LM, SGLang, Ollama는 모두 Kun의 모델 호출 대상 서버일 뿐이며, GUI의 thread/approval/tool/event 경계는 계속 Kun 하나로 유지됩니다.
 
 GUI의 provider 설정은 Kun CLI 인자와 환경 변수로 전달됩니다. Codex OAuth는 `~/.codex/auth.json`의 access token/refresh token을 사용합니다.
 

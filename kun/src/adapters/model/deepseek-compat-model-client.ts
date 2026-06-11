@@ -143,7 +143,11 @@ export class DeepseekCompatModelClient implements ModelClient {
       yield { kind: 'error', message: 'request was aborted before start' }
       return
     }
-    const stream = request.stream ?? !this.config.nonStreaming
+    const requestModel = request.model?.trim() || this.config.model
+    const stream = request.stream ?? (
+      !this.config.nonStreaming &&
+      !isLocalMlxLmGemmaModel(this.config.baseUrl, requestModel)
+    )
     if (isOllamaNativeBaseUrl(this.config.baseUrl)) {
       yield* this.streamOllamaNative(request, stream)
       return
@@ -1358,6 +1362,21 @@ function isOllamaNativeBaseUrl(baseUrl: string): boolean {
     )
   } catch {
     return /(^|\/\/)(localhost|127\.0\.0\.1|\[::1\]|::1):11434\b/i.test(baseUrl)
+  }
+}
+
+function isLocalMlxLmGemmaModel(baseUrl: string, model: string): boolean {
+  if (!/gemma-4-12B-it-txt-mlx/i.test(model)) return false
+  try {
+    const url = new URL(baseUrl)
+    return url.protocol === 'http:' && (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '::1' ||
+      url.hostname === '[::1]'
+    )
+  } catch {
+    return /(^|\/\/)(localhost|127\.0\.0\.1|\[::1\]|::1):\d+/i.test(baseUrl)
   }
 }
 

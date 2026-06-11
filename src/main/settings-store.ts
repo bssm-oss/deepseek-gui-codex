@@ -4,8 +4,10 @@ import { basename, dirname, join } from 'node:path'
 import { atomicWriteFile } from '../../kun/src/adapters/file/atomic-write.js'
 import {
   applyKunRuntimePatch,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_SGLANG_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   kunSettingsEnvelope,
@@ -159,24 +161,34 @@ function rawProviderListHadSglangProvider(parsed: Partial<AppSettingsV1>): boole
   )
 }
 
-function migrateLegacyOllamaDefaultKunPatch(
+function rawProviderListHadMlxLmProvider(parsed: Partial<AppSettingsV1>): boolean {
+  const providers = (parsed.provider as { providers?: Array<{ id?: unknown }> } | undefined)?.providers
+  return Array.isArray(providers) && providers.some((provider) =>
+    provider?.id === MLX_LM_MODEL_PROVIDER_ID
+  )
+}
+
+function migrateLegacyLocalDefaultKunPatch(
   parsed: Partial<AppSettingsV1>,
   migratedKun: KunRuntimeSettingsPatchV1 | undefined
 ): KunRuntimeSettingsPatchV1 | undefined {
-  if (rawProviderListHadSglangProvider(parsed)) return migratedKun
+  if (rawProviderListHadMlxLmProvider(parsed)) return migratedKun
 
   const providerId = typeof migratedKun?.providerId === 'string' ? migratedKun.providerId.trim() : ''
   const model = typeof migratedKun?.model === 'string' ? migratedKun.model.trim() : ''
   const inheritedLegacyOllamaDefault =
     (!providerId || providerId === OLLAMA_MODEL_PROVIDER_ID) &&
     (!model || model === DEFAULT_OLLAMA_MODEL)
-  if (!inheritedLegacyOllamaDefault) return migratedKun
+  const inheritedLegacySglangDefault =
+    (providerId === SGLANG_MODEL_PROVIDER_ID || (!providerId && rawProviderListHadSglangProvider(parsed))) &&
+    (!model || model === DEFAULT_SGLANG_MODEL)
+  if (!inheritedLegacyOllamaDefault && !inheritedLegacySglangDefault) return migratedKun
 
   return {
     ...migratedKun,
-    providerId: SGLANG_MODEL_PROVIDER_ID,
+    providerId: MLX_LM_MODEL_PROVIDER_ID,
     modelProviderAuthType: 'none',
-    model: DEFAULT_SGLANG_MODEL,
+    model: DEFAULT_MLX_LM_MODEL,
     apiKey: '',
     baseUrl: ''
   }
@@ -246,7 +258,7 @@ const defaultSettings = (): AppSettingsV1 => ({
 function buildMergedSettings(parsed: Partial<AppSettingsV1>): AppSettingsV1 {
   const migrated = migrateLegacyAppSettings(parsed)
   const defaults = defaultSettings()
-  const migratedKun = migrateLegacyOllamaDefaultKunPatch(parsed, migrated.agents?.kun)
+  const migratedKun = migrateLegacyLocalDefaultKunPatch(parsed, migrated.agents?.kun)
   return {
     ...defaults,
     ...migrated,

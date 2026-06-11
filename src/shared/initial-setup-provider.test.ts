@@ -6,10 +6,13 @@ import {
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_KUN_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_SGLANG_BASE_URL,
   DEFAULT_SGLANG_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   buildInitialSetupProviderPatch,
@@ -99,8 +102,48 @@ describe('initial setup provider patch', () => {
     expect(next.agents.kun.codexAuthPath).toBe('')
   })
 
-  it('selects local Gemma through SGLang by default without an API key', () => {
+  it('selects local Gemma through MLX-LM by default without an API key', () => {
     const next = applyProviderPatch(settings(), 'none')
+    const runtime = resolveKunRuntimeSettings(next)
+    const mlxLmProvider = next.provider.providers.find((provider) =>
+      provider.id === MLX_LM_MODEL_PROVIDER_ID
+    )
+
+    expect(next.agents.kun.providerId).toBe(MLX_LM_MODEL_PROVIDER_ID)
+    expect(next.agents.kun.model).toBe(DEFAULT_MLX_LM_MODEL)
+    expect(mlxLmProvider).toMatchObject({
+      authType: 'none',
+      apiKey: '',
+      baseUrl: DEFAULT_MLX_LM_BASE_URL,
+      codexAuthPath: '',
+      models: [DEFAULT_MLX_LM_MODEL]
+    })
+    expect(runtime.modelProviderAuthType).toBe('none')
+    expect(runtime.apiKey).toBe('')
+    expect(runtime.baseUrl).toBe(DEFAULT_MLX_LM_BASE_URL)
+  })
+
+  it('can still select local Gemma through SGLang without an API key', () => {
+    const initial = settings()
+    const patch = buildInitialSetupProviderPatch(initial, 'none', SGLANG_MODEL_PROVIDER_ID)
+    const next = normalizeAppSettings({
+      ...initial,
+      ...patch,
+      provider: {
+        ...initial.provider,
+        ...(patch.provider ?? {})
+      },
+      agents: patch.agents
+        ? {
+            ...initial.agents,
+            ...patch.agents,
+            kun: {
+              ...initial.agents.kun,
+              ...(patch.agents.kun ?? {})
+            }
+          }
+        : initial.agents
+    } as AppSettingsV1)
     const runtime = resolveKunRuntimeSettings(next)
     const sglangProvider = next.provider.providers.find((provider) =>
       provider.id === SGLANG_MODEL_PROVIDER_ID

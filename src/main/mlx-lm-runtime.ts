@@ -1,60 +1,58 @@
-import { app } from 'electron'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import {
-  DEFAULT_SGLANG_BASE_URL,
-  DEFAULT_SGLANG_MODEL_PATH,
-  SGLANG_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   type KunRuntimeSettingsV1
 } from '../shared/app-settings'
 import { appendManagedLogLine } from './logger'
 
-const SGLANG_STOP_GRACE_MS = 5_000
-const SGLANG_STOP_FORCE_MS = 1_000
-const parsedStartupTimeoutMs = Number(process.env.DEEPSEEK_GUI_SGLANG_STARTUP_TIMEOUT_MS)
-const SGLANG_STARTUP_TIMEOUT_MS = Number.isFinite(parsedStartupTimeoutMs) && parsedStartupTimeoutMs > 0
+const MLX_LM_STOP_GRACE_MS = 5_000
+const MLX_LM_STOP_FORCE_MS = 1_000
+const parsedStartupTimeoutMs = Number(process.env.DEEPSEEK_GUI_MLX_LM_STARTUP_TIMEOUT_MS)
+const MLX_LM_STARTUP_TIMEOUT_MS = Number.isFinite(parsedStartupTimeoutMs) && parsedStartupTimeoutMs > 0
   ? parsedStartupTimeoutMs
   : 180_000
-const SGLANG_STDERR_TAIL_MAX_CHARS = 6_000
-const DEFAULT_SGLANG_PYTHON = join(homedir(), '.deepseekgui', 'sglang-metal', 'bin', 'python')
-const SGLANG_LAUNCHER_FILE = 'sglang-gemma4-text-launcher.py'
+const MLX_LM_STDERR_TAIL_MAX_CHARS = 6_000
+const DEFAULT_MLX_LM_PYTHON = join(homedir(), '.deepseekgui', 'sglang-metal', 'bin', 'python')
 
-export type SglangRuntimeEnsureOptions = {
+export type MlxLmRuntimeEnsureOptions = {
   startupTimeoutMs?: number
 }
 
 let child: ChildProcess | null = null
 let stderrTail = ''
 
-type SglangEndpoint = {
+type MlxLmEndpoint = {
   baseUrl: string
   host: string
   port: number
   autoLaunchable: boolean
 }
 
-type SglangHealth = {
+type MlxLmHealth = {
   ok: boolean
   modelIds: string[]
 }
 
 function appendTail(current: string, nextChunk: string): string {
   const combined = `${current}${nextChunk}`
-  return combined.length > SGLANG_STDERR_TAIL_MAX_CHARS
-    ? combined.slice(-SGLANG_STDERR_TAIL_MAX_CHARS)
+  return combined.length > MLX_LM_STDERR_TAIL_MAX_CHARS
+    ? combined.slice(-MLX_LM_STDERR_TAIL_MAX_CHARS)
     : combined
 }
 
 function formatLogLine(stream: 'stdout' | 'stderr' | 'lifecycle', pid: number | undefined, message: string): string {
   const stamp = new Date().toISOString()
-  const pidLabel = typeof pid === 'number' ? `sglang pid=${pid}` : 'sglang'
+  const pidLabel = typeof pid === 'number' ? `mlx-lm pid=${pid}` : 'mlx-lm'
   return `[${stamp}] [${stream.toUpperCase()}] [${pidLabel}] ${message}\n`
 }
 
 function logLifecycle(message: string, pid = child?.pid): void {
-  void appendManagedLogLine('sglang', formatLogLine('lifecycle', pid, message))
+  void appendManagedLogLine('mlx-lm', formatLogLine('lifecycle', pid, message))
 }
 
 function captureChildOutput(stream: 'stdout' | 'stderr', pid: number | undefined, chunk: Buffer | string): void {
@@ -62,15 +60,15 @@ function captureChildOutput(stream: 'stdout' | 'stderr', pid: number | undefined
   if (stream === 'stderr') stderrTail = appendTail(stderrTail, text)
   for (const line of text.split('\n')) {
     if (!line.trim()) continue
-    void appendManagedLogLine('sglang', formatLogLine(stream, pid, line))
+    void appendManagedLogLine('mlx-lm', formatLogLine(stream, pid, line))
   }
 }
 
-function parseSglangEndpoint(baseUrl: string): SglangEndpoint {
-  const fallback = new URL(DEFAULT_SGLANG_BASE_URL)
+function parseMlxLmEndpoint(baseUrl: string): MlxLmEndpoint {
+  const fallback = new URL(DEFAULT_MLX_LM_BASE_URL)
   let url: URL
   try {
-    url = new URL(baseUrl.trim() || DEFAULT_SGLANG_BASE_URL)
+    url = new URL(baseUrl.trim() || DEFAULT_MLX_LM_BASE_URL)
   } catch {
     url = fallback
   }
@@ -88,7 +86,7 @@ function parseSglangEndpoint(baseUrl: string): SglangEndpoint {
   }
 }
 
-async function checkSglangHealth(endpoint: SglangEndpoint, timeoutMs = 1_000): Promise<SglangHealth> {
+async function checkMlxLmHealth(endpoint: MlxLmEndpoint, timeoutMs = 1_000): Promise<MlxLmHealth> {
   try {
     const res = await fetch(`${endpoint.baseUrl}/v1/models`, {
       signal: AbortSignal.timeout(timeoutMs)
@@ -104,95 +102,78 @@ async function checkSglangHealth(endpoint: SglangEndpoint, timeoutMs = 1_000): P
   }
 }
 
-function modelIsExposed(health: SglangHealth, model: string): boolean {
+function modelIsExposed(health: MlxLmHealth, model: string): boolean {
   return health.ok && (health.modelIds.length === 0 || health.modelIds.includes(model))
 }
 
-function sglangPythonPath(): string {
-  return process.env.DEEPSEEK_GUI_SGLANG_PYTHON?.trim() || DEFAULT_SGLANG_PYTHON
+function mlxLmPythonPath(): string {
+  return process.env.DEEPSEEK_GUI_MLX_LM_PYTHON?.trim() ||
+    process.env.DEEPSEEK_GUI_SGLANG_PYTHON?.trim() ||
+    DEFAULT_MLX_LM_PYTHON
 }
 
-function sglangLauncherPath(): string {
-  const override = process.env.DEEPSEEK_GUI_SGLANG_LAUNCHER?.trim()
-  if (override) return override
-  return app.isPackaged
-    ? join(process.resourcesPath, SGLANG_LAUNCHER_FILE)
-    : join(app.getAppPath(), 'resources', SGLANG_LAUNCHER_FILE)
+function mlxLmModelPath(runtime: KunRuntimeSettingsV1): string {
+  return process.env.DEEPSEEK_GUI_MLX_LM_MODEL_PATH?.trim() || runtime.model || DEFAULT_MLX_LM_MODEL
 }
 
-function sglangModelPath(): string {
-  return process.env.DEEPSEEK_GUI_SGLANG_MODEL_PATH?.trim() || DEFAULT_SGLANG_MODEL_PATH
-}
-
-function sglangLaunchArgs(endpoint: SglangEndpoint, model: string, launcherPath: string): string[] {
+function mlxLmLaunchArgs(endpoint: MlxLmEndpoint, runtime: KunRuntimeSettingsV1): string[] {
   return [
-    launcherPath,
+    '-m',
+    'mlx_lm',
+    'server',
+    '--model',
+    mlxLmModelPath(runtime),
     '--host',
     endpoint.host,
     '--port',
     String(endpoint.port),
-    '--model-path',
-    sglangModelPath(),
-    '--served-model-name',
-    model,
-    '--reasoning-parser',
-    'gemma4',
-    '--tool-call-parser',
-    'gemma4',
+    '--chat-template-args',
+    '{"enable_thinking":false}',
     '--log-level',
-    'warning',
-    '--log-level-http',
-    'warning'
+    'WARNING'
   ]
 }
 
-function isSglangSelected(runtime: KunRuntimeSettingsV1): boolean {
-  return runtime.modelProviderAuthType === 'none' && runtime.providerId === SGLANG_MODEL_PROVIDER_ID
+function isMlxLmSelected(runtime: KunRuntimeSettingsV1): boolean {
+  return runtime.modelProviderAuthType === 'none' && runtime.providerId === MLX_LM_MODEL_PROVIDER_ID
 }
 
-export async function ensureSglangServerForRuntime(
+export async function ensureMlxLmServerForRuntime(
   runtime: KunRuntimeSettingsV1,
-  options: SglangRuntimeEnsureOptions = {}
+  options: MlxLmRuntimeEnsureOptions = {}
 ): Promise<void> {
-  if (!isSglangSelected(runtime)) return
+  if (!isMlxLmSelected(runtime)) return
 
-  const endpoint = parseSglangEndpoint(runtime.baseUrl)
-  const health = await checkSglangHealth(endpoint)
+  const endpoint = parseMlxLmEndpoint(runtime.baseUrl)
+  const health = await checkMlxLmHealth(endpoint)
   if (modelIsExposed(health, runtime.model)) return
   if (health.ok) {
     throw new Error(
-      `SGLang server at ${endpoint.baseUrl} is running but does not expose model "${runtime.model}". Exposed models: ${health.modelIds.join(', ') || '(none)'}`
+      `MLX-LM server at ${endpoint.baseUrl} is running but does not expose model "${runtime.model}". Exposed models: ${health.modelIds.join(', ') || '(none)'}`
     )
   }
   if (!endpoint.autoLaunchable) {
-    throw new Error(`SGLang server is not reachable at ${endpoint.baseUrl}. Start it manually or use a local 127.0.0.1 endpoint.`)
+    throw new Error(`MLX-LM server is not reachable at ${endpoint.baseUrl}. Start it manually or use a local 127.0.0.1 endpoint.`)
   }
 
   if (child && child.exitCode === null && child.signalCode === null) {
-    await waitForSglangServer(endpoint, runtime.model, undefined, options.startupTimeoutMs)
+    await waitForMlxLmServer(endpoint, runtime.model, undefined, options.startupTimeoutMs)
     return
   }
 
-  const python = sglangPythonPath()
+  const python = mlxLmPythonPath()
   if (!existsSync(python)) {
     throw new Error(
-      `SGLang runtime is not installed at ${python}. Install the local SGLang/MLX runtime or switch Settings to Ollama.`
-    )
-  }
-  const launcherPath = sglangLauncherPath()
-  if (!existsSync(launcherPath)) {
-    throw new Error(
-      `SGLang launcher is missing at ${launcherPath}. Reinstall DeepSeek GUI or switch Settings to Ollama.`
+      `MLX-LM runtime is not installed at ${python}. Install the local MLX runtime or switch Settings to Ollama.`
     )
   }
 
-  const args = sglangLaunchArgs(endpoint, runtime.model, launcherPath)
+  const args = mlxLmLaunchArgs(endpoint, runtime)
   stderrTail = ''
   child = spawn(python, args, {
     env: {
       ...process.env,
       PYTHONUNBUFFERED: '1',
-      SGLANG_USE_MLX: '1',
       HF_HUB_DISABLE_XET: process.env.HF_HUB_DISABLE_XET || '1'
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -211,33 +192,33 @@ export async function ensureSglangServerForRuntime(
     logLifecycle(`process error: ${error instanceof Error ? error.message : String(error)}`, pid)
   })
 
-  await waitForSglangServer(endpoint, runtime.model, startedChild, options.startupTimeoutMs)
+  await waitForMlxLmServer(endpoint, runtime.model, startedChild, options.startupTimeoutMs)
   logLifecycle(`ready on ${endpoint.baseUrl} as ${runtime.model}`, pid)
 }
 
-async function waitForSglangServer(
-  endpoint: SglangEndpoint,
+async function waitForMlxLmServer(
+  endpoint: MlxLmEndpoint,
   model: string,
   process?: ChildProcess,
-  startupTimeoutMs = SGLANG_STARTUP_TIMEOUT_MS
+  startupTimeoutMs = MLX_LM_STARTUP_TIMEOUT_MS
 ): Promise<void> {
   const deadline = Date.now() + Math.max(1_000, startupTimeoutMs)
   while (Date.now() <= deadline) {
     if (process && process.exitCode !== null) {
       throw new Error(
-        `SGLang exited during startup with code ${process.exitCode}.${stderrTail ? `\n${stderrTail}` : ''}`
+        `MLX-LM exited during startup with code ${process.exitCode}.${stderrTail ? `\n${stderrTail}` : ''}`
       )
     }
-    const health = await checkSglangHealth(endpoint, 1_500)
+    const health = await checkMlxLmHealth(endpoint, 1_500)
     if (modelIsExposed(health, model)) return
     await new Promise((resolve) => setTimeout(resolve, 750))
   }
   throw new Error(
-    `Timed out waiting for SGLang at ${endpoint.baseUrl} to expose model "${model}".${stderrTail ? `\n${stderrTail}` : ''}`
+    `Timed out waiting for MLX-LM at ${endpoint.baseUrl} to expose model "${model}".${stderrTail ? `\n${stderrTail}` : ''}`
   )
 }
 
-export async function stopSglangServerAndWait(): Promise<void> {
+export async function stopMlxLmServerAndWait(): Promise<void> {
   if (!child) return
   const stoppingChild = child
   const pid = stoppingChild.pid
@@ -248,14 +229,14 @@ export async function stopSglangServerAndWait(): Promise<void> {
       /* already gone */
     }
   }
-  const exited = await waitForChildExit(stoppingChild, SGLANG_STOP_GRACE_MS)
+  const exited = await waitForChildExit(stoppingChild, MLX_LM_STOP_GRACE_MS)
   if (!exited) {
     try {
       if (pid) process.kill(pid, 'SIGKILL')
     } catch {
       /* already gone */
     }
-    await waitForChildExit(stoppingChild, SGLANG_STOP_FORCE_MS)
+    await waitForChildExit(stoppingChild, MLX_LM_STOP_FORCE_MS)
   }
   if (child === stoppingChild) child = null
 }
