@@ -10,7 +10,9 @@ import {
   defaultKunRuntimeSettings,
   defaultModelProviderSettings,
   DEFAULT_OLLAMA_MODEL,
+  DEFAULT_SGLANG_MODEL,
   OLLAMA_MODEL_PROVIDER_ID,
+  SGLANG_MODEL_PROVIDER_ID,
   defaultScheduleSettings,
   defaultWriteSettings,
   type AppSettingsV1
@@ -56,6 +58,15 @@ function createSettings(binaryPath: string): AppSettingsV1 {
   }
 }
 
+function createSglangSettings(binaryPath: string): AppSettingsV1 {
+  const settings = createSettings(binaryPath)
+  settings.agents.kun.providerId = SGLANG_MODEL_PROVIDER_ID
+  settings.agents.kun.model = DEFAULT_SGLANG_MODEL
+  settings.agents.kun.baseUrl = ''
+  settings.agents.kun.modelProviderAuthType = 'none'
+  return settings
+}
+
 function writeScript(name: string, content: string): string {
   if (!tempRoot) throw new Error('temp root not initialized')
   const path = join(tempRoot, name)
@@ -81,6 +92,8 @@ beforeEach(() => {
 afterEach(async () => {
   const module = await import('./kun-process')
   await module.stopKunChildAndWait()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   configureLogger({ dir: '', enabled: true, retentionDays: 2 })
   if (tempRoot) {
     rmSync(tempRoot, { recursive: true, force: true })
@@ -125,6 +138,40 @@ describe('startKunChild', () => {
     const logText = await readKunLog()
     expect(logText).toContain('bind failed on port 8899')
     expect(logText).toContain('exited with code 23')
+  })
+
+  it('starts with Ollama when SGLang is still warming up', async () => {
+    if (!tempRoot) throw new Error('temp root not initialized')
+    const argvPath = join(tempRoot, 'argv.json')
+    const script = writeScript(
+      'ready-child-argv.js',
+      [
+        "const { writeFileSync } = require('node:fs')",
+        `writeFileSync(${JSON.stringify(argvPath)}, JSON.stringify(process.argv), 'utf8')`,
+        "process.stdout.write('KUN_READY ' + JSON.stringify({ service: 'kun', mode: 'serve', port: 8899 }) + '\\n')",
+        "setInterval(() => {}, 1_000)"
+      ].join('\n')
+    )
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      if (url.includes('127.0.0.1:30000')) throw new Error('SGLang not ready')
+      if (url === 'http://127.0.0.1:11434/api/tags') {
+        return new Response(JSON.stringify({ models: [{ name: DEFAULT_OLLAMA_MODEL }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' }
+        })
+      }
+      throw new Error(`Unexpected fetch ${url}`)
+    }))
+
+    const module = await import('./kun-process')
+    await expect(module.startKunChild(createSglangSettings(script))).resolves.toBeUndefined()
+    const argv = JSON.parse(readFileSync(argvPath, 'utf8')) as string[]
+    expect(argv).toContain('--base-url')
+    expect(argv[argv.indexOf('--base-url') + 1]).toBe('http://127.0.0.1:11434')
+    expect(argv[argv.indexOf('--model') + 1]).toBe(DEFAULT_OLLAMA_MODEL)
+    const logText = await readKunLog()
+    expect(logText).toContain('Ollama fallback')
   })
 })
 
