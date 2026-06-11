@@ -96,6 +96,12 @@ describe('electron-builder Kun packaging', () => {
     expect(builderConfig.files).toEqual(expect.arrayContaining([
       '!**/node_modules/openclaw/**/*'
     ]))
+    expect(builderConfig.extraResources).toEqual(expect.arrayContaining([
+      {
+        from: 'resources/sglang-gemma4-text-launcher.py',
+        to: 'sglang-gemma4-text-launcher.py'
+      }
+    ]))
   })
 
   it('validates the unpacked Kun runtime before release artifacts are created', () => {

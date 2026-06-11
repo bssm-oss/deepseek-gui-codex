@@ -2,7 +2,7 @@ import { appendFile, mkdir, readdir, stat, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export type LogLevel = 'error' | 'warn' | 'info'
-export type ManagedLogFilePrefix = 'deepseek-gui' | 'kun'
+export type ManagedLogFilePrefix = 'deepseek-gui' | 'kun' | 'sglang'
 
 type LoggerConfig = {
   /** Directory where log files are stored. */
@@ -14,7 +14,7 @@ type LoggerConfig = {
 }
 
 let cfg: LoggerConfig = { dir: '', enabled: true, retentionDays: 2 }
-const MANAGED_LOG_FILE_PREFIXES: ManagedLogFilePrefix[] = ['deepseek-gui', 'kun']
+const MANAGED_LOG_FILE_PREFIXES: ManagedLogFilePrefix[] = ['deepseek-gui', 'kun', 'sglang']
 
 export function configureLogger(config: Partial<LoggerConfig>): void {
   cfg = { ...cfg, ...config }

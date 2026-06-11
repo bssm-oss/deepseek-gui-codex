@@ -97,6 +97,12 @@ module.exports = {
     '!**/CHANGELOG*',
     '!**/node_modules/openclaw/**/*'
   ],
+  extraResources: [
+    {
+      from: 'resources/sglang-gemma4-text-launcher.py',
+      to: 'sglang-gemma4-text-launcher.py'
+    }
+  ],
   artifactName: `DeepSeek-GUI-${artifactVersion}-\${os}-\${arch}.\${ext}`,
   publish: [
     {
