@@ -86,6 +86,7 @@ type StreamReadResult =
   | { kind: 'error'; message: string }
 
 const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 45_000
+const DEFAULT_LOCAL_MAX_TOKENS = 1024
 
 /**
  * DeepSeek-compatible model client.
@@ -208,8 +209,9 @@ export class DeepseekCompatModelClient implements ModelClient {
       stream,
       messages
     }
-    if (request.maxTokens !== undefined) {
-      body.max_tokens = request.maxTokens
+    const maxTokens = request.maxTokens ?? defaultMaxTokensForBaseUrl(this.config.baseUrl)
+    if (maxTokens !== undefined) {
+      body.max_tokens = maxTokens
     }
     if (request.temperature !== undefined) {
       body.temperature = request.temperature
@@ -1057,4 +1059,16 @@ function limitHistoryPreservingCompaction(history: TurnItem[], windowSize: numbe
     return windowSize <= 1 ? [item] : [item, ...history.slice(-(windowSize - 1))]
   }
   return limited
+}
+
+function defaultMaxTokensForBaseUrl(baseUrl: string): number | undefined {
+  try {
+    const host = new URL(baseUrl).hostname.toLowerCase()
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+      return DEFAULT_LOCAL_MAX_TOKENS
+    }
+  } catch {
+    return undefined
+  }
+  return undefined
 }
