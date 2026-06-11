@@ -20,10 +20,12 @@ import {
   mergeClawSettings,
   mergeModelProviderSettings,
   mergeScheduleSettings,
+  mergeTestSpriteSettings,
   mergeWriteSettings,
   normalizeAppSettings,
   normalizeAppBehaviorSettings,
   normalizeKeyboardShortcuts,
+  normalizeTestSpriteSettings,
   resolveKunRuntimeSettings,
   type AppBehaviorConfigV1,
   type AppSettingsPatch,
@@ -750,7 +752,14 @@ function canonicalSettingsValue(value: unknown): unknown {
 }
 
 function runtimeStartupConfigChanged(prev: AppSettingsV1, next: AppSettingsV1): boolean {
-  return kunRuntimeConfigChanged(prev, next) || clawScheduleMcpSettingsChanged(prev, next)
+  return (
+    kunRuntimeConfigChanged(prev, next) ||
+    clawScheduleMcpSettingsChanged(prev, next) ||
+    !stableSettingsValueEqual(
+      normalizeTestSpriteSettings(prev.testSprite),
+      normalizeTestSpriteSettings(next.testSprite)
+    )
+  )
 }
 
 async function restartManagedRuntimeForSettingsChange(
@@ -901,6 +910,7 @@ app.whenReady().then(async () => {
       write: mergeWriteSettings(prev.write, partial.write),
       claw: mergeClawSettings(prev.claw, partial.claw),
       schedule: mergeScheduleSettings(prev.schedule, partial.schedule),
+      testSprite: mergeTestSpriteSettings(prev.testSprite, partial.testSprite),
       guiUpdate: { ...prev.guiUpdate, ...(partial.guiUpdate ?? {}) }
     })
     if (prev.log.enabled !== next.log.enabled || prev.log.retentionDays !== next.log.retentionDays) {

@@ -465,6 +465,19 @@ export type GuiUpdateConfigV1 = {
   channel: GuiUpdateChannel
 }
 
+export type TestSpriteSettingsV1 = {
+  enabled: boolean
+  apiKey: string
+  command: string
+  args: string[]
+  timeoutMs: number
+  promptPrefix: string
+}
+
+export type TestSpriteSettingsPatchV1 = Partial<Omit<TestSpriteSettingsV1, 'args'>> & {
+  args?: string[]
+}
+
 export type AppSettingsV1 = {
   version: 1
   locale: AppLocale
@@ -481,11 +494,12 @@ export type AppSettingsV1 = {
   claw: ClawSettingsV1
   schedule: ScheduleSettingsV1
   guiUpdate: GuiUpdateConfigV1
+  testSprite?: TestSpriteSettingsV1
   codePromptPrefix: string
 }
 
 export type AppSettingsPatch = Partial<
-  Omit<AppSettingsV1, 'provider' | 'agents' | 'log' | 'notifications' | 'appBehavior' | 'keyboardShortcuts' | 'write' | 'claw' | 'schedule' | 'guiUpdate'>
+  Omit<AppSettingsV1, 'provider' | 'agents' | 'log' | 'notifications' | 'appBehavior' | 'keyboardShortcuts' | 'write' | 'claw' | 'schedule' | 'guiUpdate' | 'testSprite'>
 > & {
   provider?: ModelProviderSettingsPatchV1
   agents?: KunSettingsEnvelopePatchV1
@@ -497,4 +511,5 @@ export type AppSettingsPatch = Partial<
   claw?: ClawSettingsPatchV1
   schedule?: ScheduleSettingsPatchV1
   guiUpdate?: Partial<GuiUpdateConfigV1>
+  testSprite?: TestSpriteSettingsPatchV1
 }

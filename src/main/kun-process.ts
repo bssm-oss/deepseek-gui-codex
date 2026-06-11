@@ -10,9 +10,11 @@ import {
   DEFAULT_OLLAMA_MODEL,
   MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
+  TESTSPRITE_MCP_SERVER_NAME,
   defaultKunTokenEconomySettings,
   getModelProviderProfile,
   isKunRuntimeInsecure,
+  normalizeTestSpriteSettings,
   resolveKunRuntimeSettings,
   SGLANG_MODEL_PROVIDER_ID,
   type KunRuntimeSettingsV1,
@@ -418,6 +420,7 @@ export async function syncGuiManagedKunConfig(
   const storage = storageConfigForRuntime(runtime.storage)
   const mcpSearch = runtime.mcpSearch
   const skillCapability = await skillCapabilityConfigForRuntime(skills, options?.scheduleMcp?.settings)
+  const testSpriteMcpServer = buildTestSpriteKunMcpServer(options?.scheduleMcp?.settings)
   const next = {
     serve: {
       ...serve,
@@ -441,12 +444,17 @@ export async function syncGuiManagedKunConfig(
       skills: skillCapability,
       mcp: {
         ...mcp,
-        ...(options?.scheduleMcp || mcpSearch.enabled || hasImportedEnabledMcpServer
+        ...(options?.scheduleMcp || testSpriteMcpServer || mcpSearch.enabled || hasImportedEnabledMcpServer
           ? { enabled: mcp.enabled === false ? false : true }
           : {}),
         servers: {
           ...objectValue(mcp.servers),
           ...importedMcpServers,
+          ...(testSpriteMcpServer
+            ? {
+                [TESTSPRITE_MCP_SERVER_NAME]: testSpriteMcpServer
+              }
+            : {}),
           ...(options?.scheduleMcp
           ? {
               [GUI_SCHEDULE_MCP_SERVER_NAME]: buildGuiScheduleKunMcpServer(
@@ -478,6 +486,22 @@ export async function syncGuiManagedKunConfig(
   if (existing && nextText === `${JSON.stringify(existing, null, 2)}\n`) return
   await mkdir(dirname(configPath), { recursive: true })
   await writeFile(configPath, nextText, 'utf8')
+}
+
+function buildTestSpriteKunMcpServer(settings?: AppSettingsV1): Record<string, unknown> | null {
+  const testSprite = normalizeTestSpriteSettings(settings?.testSprite)
+  if (!testSprite.enabled || !testSprite.apiKey.trim()) return null
+  return {
+    enabled: true,
+    transport: 'stdio',
+    command: testSprite.command,
+    args: testSprite.args,
+    env: {
+      API_KEY: testSprite.apiKey
+    },
+    trustScope: 'user',
+    timeoutMs: testSprite.timeoutMs
+  }
 }
 
 function buildGuiScheduleKunMcpServer(

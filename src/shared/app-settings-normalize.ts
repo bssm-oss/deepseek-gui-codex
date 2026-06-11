@@ -21,6 +21,7 @@ import { normalizeModelProviderSettings } from './app-settings-provider'
 import { normalizeDeepseekBaseUrl } from './app-settings-normalizers'
 import { normalizeClawSettings } from './app-settings-claw'
 import { normalizeScheduleSettings } from './app-settings-schedule'
+import { normalizeTestSpriteSettings } from './app-settings-testsprite'
 import { normalizeWriteSettings } from './app-settings-write'
 
 export function normalizeAppSettings(settings: AppSettingsV1): AppSettingsV1 {
@@ -36,6 +37,7 @@ export function normalizeAppSettings(settings: AppSettingsV1): AppSettingsV1 {
     claw?: ClawSettingsPatchV1
     schedule?: ScheduleSettingsPatchV1
     guiUpdate?: Partial<GuiUpdateConfigV1>
+    testSprite?: Parameters<typeof normalizeTestSpriteSettings>[0]
   }
   const runtime = getKunRuntimeSettings(maybeSettings)
   return {
@@ -75,6 +77,7 @@ export function normalizeAppSettings(settings: AppSettingsV1): AppSettingsV1 {
         maybeSettings.guiUpdate?.channel ?? DEFAULT_GUI_UPDATE_CHANNEL
       )
     },
+    testSprite: normalizeTestSpriteSettings(maybeSettings.testSprite),
     codePromptPrefix: typeof maybeSettings.codePromptPrefix === 'string' ? maybeSettings.codePromptPrefix : ''
   }
 }
