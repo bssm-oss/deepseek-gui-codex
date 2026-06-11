@@ -73,6 +73,28 @@ type ChatCompletionResponse = {
   }
 }
 
+type OllamaChatResponse = {
+  model?: string
+  message?: {
+    role?: string
+    content?: string
+    thinking?: string
+    tool_calls?: OllamaToolCall[]
+  }
+  done?: boolean
+  done_reason?: string
+  prompt_eval_count?: number
+  eval_count?: number
+}
+
+type OllamaToolCall = {
+  id?: string
+  function?: {
+    name?: string
+    arguments?: unknown
+  }
+}
+
 type ModelStopReason = Extract<ModelStreamChunk, { kind: 'completed' }>['stopReason']
 type PendingToolCall = {
   index?: number
@@ -87,6 +109,7 @@ type StreamReadResult =
 
 const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 45_000
 const DEFAULT_LOCAL_MAX_TOKENS = 1024
+const DEFAULT_OLLAMA_CONTEXT_TOKENS = 16_384
 
 /**
  * DeepSeek-compatible model client.
@@ -120,8 +143,12 @@ export class DeepseekCompatModelClient implements ModelClient {
       yield { kind: 'error', message: 'request was aborted before start' }
       return
     }
-    const url = this.buildUrl('/v1/chat/completions')
     const stream = request.stream ?? !this.config.nonStreaming
+    if (isOllamaNativeBaseUrl(this.config.baseUrl)) {
+      yield* this.streamOllamaNative(request, stream)
+      return
+    }
+    const url = this.buildUrl('/v1/chat/completions')
     const body = this.buildRequestBody(request, stream)
     const headers = this.buildHeaders(stream)
     const init: RequestInit = {
@@ -169,6 +196,17 @@ export class DeepseekCompatModelClient implements ModelClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: stream ? 'text/event-stream' : 'application/json'
+    }
+    if (this.config.apiKey) {
+      headers.Authorization = `Bearer ${this.config.apiKey}`
+    }
+    return { ...headers, ...(this.config.headers ?? {}) }
+  }
+
+  private buildOllamaHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/x-ndjson, application/json'
     }
     if (this.config.apiKey) {
       headers.Authorization = `Bearer ${this.config.apiKey}`
@@ -246,7 +284,53 @@ export class DeepseekCompatModelClient implements ModelClient {
     return body
   }
 
-  private collectMessages(request: ModelRequest, model: string): ChatMessage[] {
+  private buildOllamaRequestBody(request: ModelRequest, stream: boolean): Record<string, unknown> {
+    const requestModel = request.model?.trim()
+    const model = requestModel || this.config.model
+    const messages = this.collectMessages(request, model, { thinkingMode: false }).map((message) => {
+      const { reasoning_content: _reasoningContent, ...rest } = message
+      return rest
+    })
+    const body: Record<string, unknown> = {
+      model,
+      stream,
+      messages,
+      think: false
+    }
+    const options: Record<string, unknown> = {}
+    const maxTokens = request.maxTokens ?? defaultMaxTokensForBaseUrl(this.config.baseUrl)
+    if (maxTokens !== undefined) {
+      options.num_predict = maxTokens
+    }
+    options.num_ctx = DEFAULT_OLLAMA_CONTEXT_TOKENS
+    if (request.temperature !== undefined) {
+      options.temperature = request.temperature
+    }
+    if (request.topP !== undefined) {
+      options.top_p = request.topP
+    }
+    if (Object.keys(options).length > 0) {
+      body.options = options
+    }
+    const tools = normalizeToolSpecs(request.tools)
+    if (tools.length > 0) {
+      body.tools = tools.map((tool) => ({
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema
+        }
+      }))
+    }
+    return body
+  }
+
+  private collectMessages(
+    request: ModelRequest,
+    model: string,
+    options: { thinkingMode?: boolean } = {}
+  ): ChatMessage[] {
     const out: ChatMessage[] = []
     if (request.systemPrompt) {
       out.push({ role: 'system', content: request.systemPrompt })
@@ -261,7 +345,7 @@ export class DeepseekCompatModelClient implements ModelClient {
     const history = windowSize
       ? limitHistoryPreservingCompaction(request.history, windowSize)
       : request.history
-    const thinkingMode = requiresReasoningRoundTrip(request.reasoningEffort, model, this.config.baseUrl)
+    const thinkingMode = options.thinkingMode ?? requiresReasoningRoundTrip(request.reasoningEffort, model, this.config.baseUrl)
     out.push(...this.itemsToMessages(
       repairModelHistoryItems([...request.prefix, ...history]),
       thinkingMode
@@ -273,6 +357,108 @@ export class DeepseekCompatModelClient implements ModelClient {
       attachTextFallbacksToLatestUserMessage(out, request.attachmentTextFallbacks)
     }
     return normalizeThinkingAssistantMessages(healToolMessagePairs(out), thinkingMode)
+  }
+
+  private async *streamOllamaNative(
+    request: ModelRequest,
+    stream: boolean
+  ): AsyncIterable<ModelStreamChunk> {
+    const url = buildOllamaNativeUrl(this.config.baseUrl, '/api/chat')
+    const init: RequestInit = {
+      method: 'POST',
+      headers: this.buildOllamaHeaders(),
+      body: JSON.stringify(this.buildOllamaRequestBody(request, stream)),
+      signal: request.abortSignal
+    }
+    let response: Response
+    try {
+      response = await this.fetchImpl(url, init)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      yield { kind: 'error', message: `model request failed: ${message}` }
+      return
+    }
+    if (!response.ok) {
+      const text = await response.text()
+      yield {
+        kind: 'error',
+        message: `model request failed with status ${response.status}: ${text.slice(0, 500)}`,
+        code: `http_${response.status}`
+      }
+      return
+    }
+    if (!stream || response.headers.get('content-type')?.includes('application/json')) {
+      const json = (await response.json()) as OllamaChatResponse
+      yield* this.materializeOllamaNative(json)
+      return
+    }
+    if (!response.body) {
+      yield { kind: 'error', message: 'model response had no body' }
+      return
+    }
+    const decoder = new TextDecoder('utf-8')
+    const reader = response.body.getReader()
+    let buffer = ''
+    let stopReason: ModelStopReason = 'stop'
+    const idleTimeoutMs = normalizeStreamIdleTimeoutMs(this.config.streamIdleTimeoutMs)
+    try {
+      while (!request.abortSignal.aborted) {
+        const read = await readStreamChunk(reader, request.abortSignal, idleTimeoutMs)
+        if (read.kind === 'timeout') {
+          yield {
+            kind: 'error',
+            message: `model stream stalled for ${idleTimeoutMs}ms without data`,
+            code: 'stream_idle_timeout'
+          }
+          return
+        }
+        if (read.kind === 'aborted') break
+        if (read.kind === 'error') {
+          yield { kind: 'error', message: read.message, code: 'stream_read_error' }
+          return
+        }
+        const { value, done } = read
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        let boundary: number
+        while ((boundary = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, boundary).trim()
+          buffer = buffer.slice(boundary + 1)
+          if (!line) continue
+          const payload = parseJsonLine<OllamaChatResponse>(line)
+          if (!payload) continue
+          const result = this.consumeOllamaPayload(payload)
+          for (const chunk of result.chunks) yield chunk
+          if (result.usage) yield { kind: 'usage', usage: result.usage }
+          if (payload.done) {
+            stopReason = ollamaStopReason(payload.done_reason)
+            yield { kind: 'completed', stopReason }
+            return
+          }
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock()
+      } catch {
+        // The stream may already be released; ignore.
+      }
+    }
+    if (request.abortSignal.aborted) {
+      yield { kind: 'error', message: 'request was aborted' }
+      return
+    }
+    const tail = buffer.trim()
+    if (tail) {
+      const payload = parseJsonLine<OllamaChatResponse>(tail)
+      if (payload) {
+        const result = this.consumeOllamaPayload(payload)
+        for (const chunk of result.chunks) yield chunk
+        if (result.usage) yield { kind: 'usage', usage: result.usage }
+        stopReason = ollamaStopReason(payload.done_reason)
+      }
+    }
+    yield { kind: 'completed', stopReason }
   }
 
   private itemsToMessages(items: TurnItem[], thinkingMode: boolean): ChatMessage[] {
@@ -646,6 +832,50 @@ export class DeepseekCompatModelClient implements ModelClient {
     else if (choice.finish_reason === 'length') stopReason = 'length'
     else if (choice.finish_reason === 'error') stopReason = 'error'
     yield { kind: 'completed', stopReason }
+  }
+
+  private *materializeOllamaNative(
+    payload: OllamaChatResponse
+  ): Generator<ModelStreamChunk> {
+    const result = this.consumeOllamaPayload(payload)
+    for (const chunk of result.chunks) yield chunk
+    if (result.usage) yield { kind: 'usage', usage: result.usage }
+    yield { kind: 'completed', stopReason: ollamaStopReason(payload.done_reason) }
+  }
+
+  private consumeOllamaPayload(payload: OllamaChatResponse): {
+    chunks: ModelStreamChunk[]
+    usage: UsageSnapshot | null
+  } {
+    const chunks: ModelStreamChunk[] = []
+    const message = payload.message
+    if (message) {
+      if (typeof message.thinking === 'string' && message.thinking.length > 0) {
+        chunks.push({ kind: 'assistant_reasoning_delta', text: message.thinking })
+      }
+      if (typeof message.content === 'string' && message.content.length > 0) {
+        chunks.push({ kind: 'assistant_text_delta', text: message.content })
+      }
+      if (Array.isArray(message.tool_calls)) {
+        for (const call of message.tool_calls) {
+          const name = call.function?.name
+          if (!name) continue
+          chunks.push({
+            kind: 'tool_call_complete',
+            callId: call.id || `ollama_tool_${chunks.length}`,
+            toolName: name,
+            arguments: normalizeOllamaToolArguments(call.function?.arguments)
+          })
+        }
+      }
+    }
+    const usage = payload.done
+      ? this.mapUsage({
+          prompt_eval_count: payload.prompt_eval_count,
+          eval_count: payload.eval_count
+        })
+      : null
+    return { chunks, usage }
   }
 
   private mapUsage(usage: Record<string, unknown>): UsageSnapshot {
@@ -1071,4 +1301,59 @@ function defaultMaxTokensForBaseUrl(baseUrl: string): number | undefined {
     return undefined
   }
   return undefined
+}
+
+function isOllamaNativeBaseUrl(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl)
+    const host = url.hostname.toLowerCase()
+    const port = url.port || (url.protocol === 'https:' ? '443' : '80')
+    return port === '11434' && (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1' ||
+      host === '[::1]'
+    )
+  } catch {
+    return /(^|\/\/)(localhost|127\.0\.0\.1|\[::1\]|::1):11434\b/i.test(baseUrl)
+  }
+}
+
+function buildOllamaNativeUrl(baseUrl: string, path: string): string {
+  let base = baseUrl.trim().replace(/\/+$/, '')
+  if (base.endsWith('/v1')) base = base.slice(0, -3)
+  if (base.endsWith('/api')) base = base.slice(0, -4)
+  return `${base}${path}`
+}
+
+function parseJsonLine<T>(line: string): T | null {
+  try {
+    return JSON.parse(line) as T
+  } catch {
+    return null
+  }
+}
+
+function ollamaStopReason(reason: string | undefined): ModelStopReason {
+  switch (reason) {
+    case 'length':
+      return 'length'
+    case 'tool_calls':
+      return 'tool_calls'
+    case 'error':
+      return 'error'
+    default:
+      return 'stop'
+  }
+}
+
+function normalizeOllamaToolArguments(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = repairToolArguments(value).arguments
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  }
+  return {}
 }

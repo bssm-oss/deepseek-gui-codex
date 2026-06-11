@@ -16,12 +16,13 @@ describe('DeepseekCompatModelClient local max tokens', () => {
     expect(body).not.toHaveProperty('max_tokens')
   })
 
-  it('preserves explicit maxTokens over the local default', async () => {
+  it('maps explicit maxTokens to Ollama native num_predict', async () => {
     const { body } = await captureRequestBody('http://localhost:11434', {
       maxTokens: 256
     })
 
-    expect(body.max_tokens).toBe(256)
+    expect(body).not.toHaveProperty('max_tokens')
+    expect(body.options).toMatchObject({ num_predict: 256, num_ctx: 16384 })
   })
 })
 

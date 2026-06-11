@@ -109,6 +109,73 @@ describe('DeepseekCompatModelClient', () => {
     expect(sentBodies[0]).not.toHaveProperty('thinking')
   })
 
+  it('uses native Ollama chat for local Gemma and disables thinking', async () => {
+    const response = {
+      model: 'gemma4:12b',
+      message: { role: 'assistant', content: '로컬 Gemma 응답' },
+      done: true,
+      prompt_eval_count: 12,
+      eval_count: 8
+    }
+    const sentUrls: string[] = []
+    const sentBodies: Array<Record<string, unknown>> = []
+    const fetchImpl: typeof fetch = async (url, init) => {
+      sentUrls.push(String(url))
+      sentBodies.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>)
+      return new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      })
+    }
+    const client = new DeepseekCompatModelClient({
+      baseUrl: 'http://127.0.0.1:11434',
+      apiKey: '',
+      model: 'gemma4:12b',
+      fetchImpl,
+      nonStreaming: true
+    })
+    const request = buildRequest(new AbortController().signal)
+    request.model = 'gemma4:12b'
+    request.reasoningEffort = 'max'
+    request.maxTokens = 64
+    request.history = [
+      makeAssistantReasoningItem({
+        id: 'reasoning_1',
+        turnId: 'turn_prev',
+        threadId: 'thr_1',
+        text: 'private reasoning',
+        status: 'completed'
+      }),
+      makeAssistantTextItem({
+        id: 'text_1',
+        turnId: 'turn_prev',
+        threadId: 'thr_1',
+        text: 'previous answer',
+        status: 'completed'
+      })
+    ]
+    const chunks = []
+    for await (const chunk of client.stream(request)) {
+      chunks.push(chunk)
+    }
+
+    expect(sentUrls[0]).toBe('http://127.0.0.1:11434/api/chat')
+    expect(sentBodies[0]).toMatchObject({
+      model: 'gemma4:12b',
+      stream: false,
+      think: false,
+      options: { num_predict: 64, num_ctx: 16384 }
+    })
+    expect(JSON.stringify(sentBodies[0])).not.toContain('reasoning_content')
+    expect(sentBodies[0]).not.toHaveProperty('max_tokens')
+    expect(chunks).toContainEqual({ kind: 'assistant_text_delta', text: '로컬 Gemma 응답' })
+    expect(chunks).toContainEqual(expect.objectContaining({
+      kind: 'usage',
+      usage: expect.objectContaining({ promptTokens: 12, completionTokens: 8, totalTokens: 20 })
+    }))
+    expect(chunks).toContainEqual({ kind: 'completed', stopReason: 'stop' })
+  })
+
   it('injects body.thinking on the official DeepSeek host (issue #26 regression guard)', async () => {
     const response = {
       id: 'r4',
