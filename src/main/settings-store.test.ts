@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_APPROVAL_POLICY,
-  DEFAULT_SGLANG_MODEL,
-  SGLANG_MODEL_PROVIDER_ID
+  DEFAULT_MLX_LM_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID
 } from '../shared/app-settings'
 import { DEFAULT_GUI_UPDATE_CHANNEL } from '../shared/gui-update'
 import { JsonSettingsStore } from './settings-store'
@@ -24,11 +24,11 @@ describe('JsonSettingsStore', () => {
       startMinimized: false,
       closeToTray: false
     })
-    expect(loaded.agents.kun.providerId).toBe(SGLANG_MODEL_PROVIDER_ID)
-    expect(loaded.agents.kun.model).toBe(DEFAULT_SGLANG_MODEL)
+    expect(loaded.agents.kun.providerId).toBe(MLX_LM_MODEL_PROVIDER_ID)
+    expect(loaded.agents.kun.model).toBe(DEFAULT_MLX_LM_MODEL)
   })
 
-  it('migrates the legacy Ollama default to SGLang and persists the provider backfill', async () => {
+  it('migrates the legacy Ollama default to MLX-LM and persists the provider backfill', async () => {
     const userDataDir = await mkdtemp(join(tmpdir(), 'ds-gui-settings-'))
     const settingsPath = join(userDataDir, 'deepseek-gui-settings.json')
 
@@ -78,11 +78,58 @@ describe('JsonSettingsStore', () => {
       agents: { kun: { providerId: string; model: string } }
     }
 
-    expect(loaded.agents.kun.providerId).toBe(SGLANG_MODEL_PROVIDER_ID)
-    expect(loaded.agents.kun.model).toBe(DEFAULT_SGLANG_MODEL)
-    expect(loaded.provider.providers.map((provider) => provider.id)).toContain(SGLANG_MODEL_PROVIDER_ID)
-    expect(persisted.agents.kun.providerId).toBe(SGLANG_MODEL_PROVIDER_ID)
-    expect(persisted.provider.providers.map((provider) => provider.id)).toContain(SGLANG_MODEL_PROVIDER_ID)
+    expect(loaded.agents.kun.providerId).toBe(MLX_LM_MODEL_PROVIDER_ID)
+    expect(loaded.agents.kun.model).toBe(DEFAULT_MLX_LM_MODEL)
+    expect(loaded.provider.providers.map((provider) => provider.id)).toContain(MLX_LM_MODEL_PROVIDER_ID)
+    expect(persisted.agents.kun.providerId).toBe(MLX_LM_MODEL_PROVIDER_ID)
+    expect(persisted.provider.providers.map((provider) => provider.id)).toContain(MLX_LM_MODEL_PROVIDER_ID)
+  })
+
+  it('migrates the previous SGLang default to MLX-LM and persists the provider backfill', async () => {
+    const userDataDir = await mkdtemp(join(tmpdir(), 'ds-gui-settings-'))
+    const settingsPath = join(userDataDir, 'deepseek-gui-settings.json')
+
+    await writeFile(
+      settingsPath,
+      JSON.stringify({
+        version: 1,
+        provider: {
+          apiKey: '',
+          baseUrl: 'https://api.deepseek.com',
+          providers: [
+            {
+              id: 'sglang-gemma',
+              name: 'Turbo Engine: SGLang',
+              authType: 'none',
+              apiKey: '',
+              baseUrl: 'http://127.0.0.1:30000',
+              codexAuthPath: '',
+              models: ['gemma4-12b']
+            }
+          ]
+        },
+        agents: {
+          kun: {
+            providerId: 'sglang-gemma',
+            model: 'gemma4-12b',
+            modelProviderAuthType: 'none'
+          }
+        }
+      }),
+      'utf8'
+    )
+
+    const store = new JsonSettingsStore(userDataDir)
+    const loaded = await store.load()
+    const persisted = JSON.parse(await readFile(settingsPath, 'utf8')) as {
+      provider: { providers: Array<{ id: string }> }
+      agents: { kun: { providerId: string; model: string } }
+    }
+
+    expect(loaded.agents.kun.providerId).toBe(MLX_LM_MODEL_PROVIDER_ID)
+    expect(loaded.agents.kun.model).toBe(DEFAULT_MLX_LM_MODEL)
+    expect(persisted.agents.kun.providerId).toBe(MLX_LM_MODEL_PROVIDER_ID)
+    expect(persisted.provider.providers.map((provider) => provider.id)).toContain(MLX_LM_MODEL_PROVIDER_ID)
   })
 
   it('creates a default write workspace with welcome.md', async () => {

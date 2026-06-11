@@ -12,6 +12,8 @@ import {
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_KUN_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
@@ -22,6 +24,7 @@ import {
   DEFAULT_WRITE_INLINE_COMPLETION_MODEL,
   DEFAULT_WRITE_INLINE_LONG_COMPLETION_MAX_TOKENS,
   DEFAULT_KUN_DATA_DIR,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   WRITE_INLINE_COMPLETION_MODEL_IDS,
@@ -422,6 +425,21 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
   const updateModelProvider = (id: string, patch: Partial<ModelProviderProfileV1>): void => {
     updateModelProviders(modelProviders.map((item) => item.id === id ? { ...item, ...patch } : item))
   }
+  const defaultNoAuthBaseUrl = (providerId: string): string => {
+    if (providerId === OLLAMA_MODEL_PROVIDER_ID) return DEFAULT_OLLAMA_BASE_URL
+    if (providerId === SGLANG_MODEL_PROVIDER_ID) return DEFAULT_SGLANG_BASE_URL
+    return DEFAULT_MLX_LM_BASE_URL
+  }
+  const defaultNoAuthModels = (providerId: string): string[] => {
+    if (providerId === OLLAMA_MODEL_PROVIDER_ID) return [DEFAULT_OLLAMA_MODEL]
+    if (providerId === SGLANG_MODEL_PROVIDER_ID) return [DEFAULT_SGLANG_MODEL]
+    return [DEFAULT_MLX_LM_MODEL]
+  }
+  const defaultNoAuthModelPlaceholder = (providerId: string): string => {
+    if (providerId === OLLAMA_MODEL_PROVIDER_ID) return DEFAULT_OLLAMA_MODEL
+    if (providerId === SGLANG_MODEL_PROVIDER_ID) return DEFAULT_SGLANG_MODEL
+    return DEFAULT_MLX_LM_MODEL
+  }
   const updateModelProviderAuthType = (authType: ModelProviderAuthTypeV1): void => {
     if (!activeProvider) return
     updateModelProvider(activeProvider.id, authType === 'codex-oauth'
@@ -438,15 +456,11 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
         ? {
             authType,
             apiKey: '',
-            baseUrl: activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
-              ? activeProvider.baseUrl.trim() || DEFAULT_OLLAMA_BASE_URL
-              : activeProvider.baseUrl.trim() || DEFAULT_SGLANG_BASE_URL,
+            baseUrl: activeProvider.baseUrl.trim() || defaultNoAuthBaseUrl(activeProvider.id),
             codexAuthPath: '',
             models: activeProvider.models.length > 0
               ? activeProvider.models
-              : activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
-                ? [DEFAULT_OLLAMA_MODEL]
-                : [DEFAULT_SGLANG_MODEL]
+              : defaultNoAuthModels(activeProvider.id)
           }
         : {
             authType,
@@ -478,6 +492,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
     if (
       id === DEFAULT_MODEL_PROVIDER_ID ||
       id === CODEX_OAUTH_MODEL_PROVIDER_ID ||
+      id === MLX_LM_MODEL_PROVIDER_ID ||
       id === SGLANG_MODEL_PROVIDER_ID ||
       id === OLLAMA_MODEL_PROVIDER_ID
     ) return
@@ -638,11 +653,9 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                                 value={activeProvider.models.join('\n')}
                                 placeholder={activeProvider.authType === 'codex-oauth'
                                   ? DEFAULT_CODEX_OAUTH_MODEL
-                                  : activeProvider.id === SGLANG_MODEL_PROVIDER_ID
-                                    ? DEFAULT_SGLANG_MODEL
-                                    : activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
-                                      ? DEFAULT_OLLAMA_MODEL
-                                  : 'deepseek-v4-pro\ndeepseek-v4-flash'}
+                                  : activeProvider.authType === 'none'
+                                    ? defaultNoAuthModelPlaceholder(activeProvider.id)
+                                    : 'deepseek-v4-pro\ndeepseek-v4-flash'}
                                 onChange={(e) => updateModelProvider(activeProvider.id, {
                                   models: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean)
                                 })}
@@ -650,6 +663,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                             </label>
                             {activeProvider.id !== DEFAULT_MODEL_PROVIDER_ID &&
                             activeProvider.id !== CODEX_OAUTH_MODEL_PROVIDER_ID &&
+                            activeProvider.id !== MLX_LM_MODEL_PROVIDER_ID &&
                             activeProvider.id !== SGLANG_MODEL_PROVIDER_ID &&
                             activeProvider.id !== OLLAMA_MODEL_PROVIDER_ID ? (
                               <button

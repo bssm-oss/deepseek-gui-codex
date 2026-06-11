@@ -6,10 +6,13 @@ import {
   DEFAULT_DEEPSEEK_BASE_URL,
   DEFAULT_KUN_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_SGLANG_BASE_URL,
   DEFAULT_SGLANG_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   type AppSettingsPatch,
@@ -36,6 +39,17 @@ function withDeepSeekDefaults(provider: ModelProviderProfileV1): ModelProviderPr
     authType: 'api-key',
     baseUrl: provider.baseUrl.trim() || DEFAULT_DEEPSEEK_BASE_URL,
     codexAuthPath: ''
+  }
+}
+
+function withMlxLmDefaults(provider: ModelProviderProfileV1): ModelProviderProfileV1 {
+  return {
+    ...provider,
+    authType: 'none',
+    apiKey: '',
+    baseUrl: provider.baseUrl.trim() || DEFAULT_MLX_LM_BASE_URL,
+    codexAuthPath: '',
+    models: provider.models.length > 0 ? provider.models : [DEFAULT_MLX_LM_MODEL]
   }
 }
 
@@ -67,12 +81,16 @@ function selectedProviderIdForInitialSetup(
 ): string {
   if (authType === 'codex-oauth') return CODEX_OAUTH_MODEL_PROVIDER_ID
   if (authType === 'api-key') return DEFAULT_MODEL_PROVIDER_ID
+  if (preferredProviderId === MLX_LM_MODEL_PROVIDER_ID) return MLX_LM_MODEL_PROVIDER_ID
+  if (preferredProviderId === SGLANG_MODEL_PROVIDER_ID) return SGLANG_MODEL_PROVIDER_ID
   if (preferredProviderId === OLLAMA_MODEL_PROVIDER_ID) return OLLAMA_MODEL_PROVIDER_ID
-  return SGLANG_MODEL_PROVIDER_ID
+  return MLX_LM_MODEL_PROVIDER_ID
 }
 
 function defaultNoAuthModelForProvider(providerId: string): string {
-  return providerId === OLLAMA_MODEL_PROVIDER_ID ? DEFAULT_OLLAMA_MODEL : DEFAULT_SGLANG_MODEL
+  if (providerId === OLLAMA_MODEL_PROVIDER_ID) return DEFAULT_OLLAMA_MODEL
+  if (providerId === SGLANG_MODEL_PROVIDER_ID) return DEFAULT_SGLANG_MODEL
+  return DEFAULT_MLX_LM_MODEL
 }
 
 export function buildInitialSetupProviderPatch(
@@ -88,6 +106,11 @@ export function buildInitialSetupProviderPatch(
     }
     if (provider.id === DEFAULT_MODEL_PROVIDER_ID) {
       return authType === 'api-key' ? withDeepSeekDefaults(provider) : provider
+    }
+    if (provider.id === MLX_LM_MODEL_PROVIDER_ID) {
+      return authType === 'none' && selectedProviderId === MLX_LM_MODEL_PROVIDER_ID
+        ? withMlxLmDefaults(provider)
+        : provider
     }
     if (provider.id === SGLANG_MODEL_PROVIDER_ID) {
       return authType === 'none' && selectedProviderId === SGLANG_MODEL_PROVIDER_ID

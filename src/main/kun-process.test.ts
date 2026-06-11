@@ -9,8 +9,11 @@ import {
   defaultKeyboardShortcuts,
   defaultKunRuntimeSettings,
   defaultModelProviderSettings,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_SGLANG_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   defaultScheduleSettings,
@@ -62,6 +65,15 @@ function createSglangSettings(binaryPath: string): AppSettingsV1 {
   const settings = createSettings(binaryPath)
   settings.agents.kun.providerId = SGLANG_MODEL_PROVIDER_ID
   settings.agents.kun.model = DEFAULT_SGLANG_MODEL
+  settings.agents.kun.baseUrl = ''
+  settings.agents.kun.modelProviderAuthType = 'none'
+  return settings
+}
+
+function createMlxLmSettings(binaryPath: string): AppSettingsV1 {
+  const settings = createSettings(binaryPath)
+  settings.agents.kun.providerId = MLX_LM_MODEL_PROVIDER_ID
+  settings.agents.kun.model = DEFAULT_MLX_LM_MODEL
   settings.agents.kun.baseUrl = ''
   settings.agents.kun.modelProviderAuthType = 'none'
   return settings
@@ -172,6 +184,43 @@ describe('startKunChild', () => {
     expect(argv[argv.indexOf('--model') + 1]).toBe(DEFAULT_OLLAMA_MODEL)
     const logText = await readKunLog()
     expect(logText).toContain('Ollama fallback')
+  })
+
+  it('starts with MLX-LM when the local Gemma server is ready', async () => {
+    if (!tempRoot) throw new Error('temp root not initialized')
+    const argvPath = join(tempRoot, 'argv-mlx.json')
+    const script = writeScript(
+      'ready-child-mlx-argv.js',
+      [
+        "const { writeFileSync } = require('node:fs')",
+        `writeFileSync(${JSON.stringify(argvPath)}, JSON.stringify(process.argv), 'utf8')`,
+        "process.stdout.write('KUN_READY ' + JSON.stringify({ service: 'kun', mode: 'serve', port: 8899 }) + '\\n')",
+        "setInterval(() => {}, 1_000)"
+      ].join('\n')
+    )
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      if (url === `${DEFAULT_MLX_LM_BASE_URL}/v1/models`) {
+        return new Response(JSON.stringify({ data: [{ id: DEFAULT_MLX_LM_MODEL }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' }
+        })
+      }
+      if (url === 'http://127.0.0.1:11434/api/tags') {
+        return new Response(JSON.stringify({ models: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' }
+        })
+      }
+      throw new Error(`Unexpected fetch ${url}`)
+    }))
+
+    const module = await import('./kun-process')
+    await expect(module.startKunChild(createMlxLmSettings(script))).resolves.toBeUndefined()
+    const argv = JSON.parse(readFileSync(argvPath, 'utf8')) as string[]
+    expect(argv).toContain('--base-url')
+    expect(argv[argv.indexOf('--base-url') + 1]).toBe(DEFAULT_MLX_LM_BASE_URL)
+    expect(argv[argv.indexOf('--model') + 1]).toBe(DEFAULT_MLX_LM_MODEL)
   })
 })
 

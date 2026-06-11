@@ -85,7 +85,7 @@ describe('kun defaults', () => {
     expect(defaultKunRuntimeSettings().dataDir).toBe(DEFAULT_KUN_DATA_DIR)
   })
 
-  it('defaults the assistant runtime to the SGLang Gemma provider model', () => {
+  it('defaults the assistant runtime to the MLX-LM Gemma provider model', () => {
     expect(defaultKunRuntimeSettings()).toMatchObject({
       providerId: DEFAULT_KUN_MODEL_PROVIDER_ID,
       modelProviderAuthType: 'none',

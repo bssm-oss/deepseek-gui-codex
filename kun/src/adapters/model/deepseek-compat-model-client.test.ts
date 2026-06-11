@@ -10,6 +10,17 @@ describe('DeepseekCompatModelClient local max tokens', () => {
     expect(body.max_tokens).toBe(1024)
   })
 
+  it('uses non-streaming requests for local MLX-LM Gemma', async () => {
+    const model = 'jedisct1/gemma-4-12B-it-txt-mlx-8bit'
+    const { body } = await captureRequestBody(
+      'http://127.0.0.1:30000',
+      { model },
+      { model, nonStreaming: false }
+    )
+
+    expect(body.stream).toBe(false)
+  })
+
   it('does not add a default max_tokens for remote providers', async () => {
     const { body } = await captureRequestBody('https://api.deepseek.com')
 
@@ -77,7 +88,8 @@ describe('DeepseekCompatModelClient local max tokens', () => {
 
 async function captureRequestBody(
   baseUrl: string,
-  requestPatch: Partial<ModelRequest> = {}
+  requestPatch: Partial<ModelRequest> = {},
+  configPatch: Partial<ConstructorParameters<typeof DeepseekCompatModelClient>[0]> = {}
 ): Promise<{ body: Record<string, unknown> }> {
   let captured: Record<string, unknown> | null = null
   const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
@@ -102,7 +114,8 @@ async function captureRequestBody(
     apiKey: '',
     model: 'gemma4-12b',
     fetchImpl,
-    nonStreaming: true
+    nonStreaming: true,
+    ...configPatch
   })
 
   for await (const _chunk of client.stream(modelRequest(requestPatch))) {

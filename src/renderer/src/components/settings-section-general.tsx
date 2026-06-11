@@ -6,18 +6,18 @@ import {
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_CODEX_OAUTH_MODEL,
   DEFAULT_KUN_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
-  DEFAULT_SGLANG_BASE_URL,
-  DEFAULT_SGLANG_MODEL,
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
   DEFAULT_WRITE_INLINE_COMPLETION_MODEL,
   DEFAULT_WRITE_INLINE_LONG_COMPLETION_MAX_TOKENS,
   DEFAULT_KUN_DATA_DIR,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
-  SGLANG_MODEL_PROVIDER_ID,
   WRITE_INLINE_COMPLETION_MODEL_IDS,
   isKunRuntimeInsecure
 } from '@shared/app-settings'
@@ -117,13 +117,13 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
   const desktopBehavior = form.appBehavior
   const providerChoices = [
     {
-      id: SGLANG_MODEL_PROVIDER_ID,
+      id: MLX_LM_MODEL_PROVIDER_ID,
       title: t('providerChoiceSglang'),
       description: t('providerChoiceSglangDesc'),
-      model: DEFAULT_SGLANG_MODEL,
+      model: DEFAULT_MLX_LM_MODEL,
       endpoint:
-        provider.providers.find((item: { id: string }) => item.id === SGLANG_MODEL_PROVIDER_ID)?.baseUrl ??
-        DEFAULT_SGLANG_BASE_URL
+        provider.providers.find((item: { id: string }) => item.id === MLX_LM_MODEL_PROVIDER_ID)?.baseUrl ??
+        DEFAULT_MLX_LM_BASE_URL
     },
     {
       id: OLLAMA_MODEL_PROVIDER_ID,
@@ -232,7 +232,7 @@ export function GeneralSettingsSection({ ctx }: { ctx: Record<string, any> }): R
                         className="w-full min-w-0 rounded-xl border border-ds-border bg-ds-card px-3 py-2 text-[14px] text-ds-ink shadow-sm focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/30 md:max-w-md"
                         placeholder={activeProvider?.id === OLLAMA_MODEL_PROVIDER_ID
                           ? DEFAULT_OLLAMA_BASE_URL
-                          : DEFAULT_SGLANG_BASE_URL}
+                          : DEFAULT_MLX_LM_BASE_URL}
                         value={sharedBaseUrl}
                         onChange={(e) => updateSharedCredential({ baseUrl: e.target.value })}
                       />

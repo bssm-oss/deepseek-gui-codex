@@ -9,10 +9,13 @@ import {
   hasKunRuntimeModelCredentials,
   resolveKunRuntimeSettings,
   CODEX_OAUTH_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
+  DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_SGLANG_BASE_URL,
   DEFAULT_SGLANG_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   SGLANG_MODEL_PROVIDER_ID,
   type AppSettingsV1
@@ -60,15 +63,22 @@ function settings(): AppSettingsV1 {
 }
 
 describe('model provider settings', () => {
-  it('seeds SGLang, Ollama, DeepSeek, and ChatGPT providers by default', () => {
+  it('seeds MLX-LM, SGLang, Ollama, DeepSeek, and ChatGPT providers by default', () => {
     const provider = defaultModelProviderSettings()
 
     expect(provider.providers.map((item) => item.id)).toEqual([
+      MLX_LM_MODEL_PROVIDER_ID,
       SGLANG_MODEL_PROVIDER_ID,
       OLLAMA_MODEL_PROVIDER_ID,
       'deepseek',
       CODEX_OAUTH_MODEL_PROVIDER_ID
     ])
+    expect(provider.providers.find((item) => item.id === MLX_LM_MODEL_PROVIDER_ID)).toMatchObject({
+      authType: 'none',
+      apiKey: '',
+      baseUrl: DEFAULT_MLX_LM_BASE_URL,
+      models: [DEFAULT_MLX_LM_MODEL]
+    })
     expect(provider.providers.find((item) => item.id === SGLANG_MODEL_PROVIDER_ID)).toMatchObject({
       authType: 'none',
       apiKey: '',
@@ -83,7 +93,7 @@ describe('model provider settings', () => {
     })
   })
 
-  it('uses SGLang Gemma as the default Kun provider when none is selected', () => {
+  it('uses MLX-LM Gemma as the default Kun provider when none is selected', () => {
     const next = settings()
     next.provider.apiKey = ''
     next.provider.baseUrl = 'https://api.deepseek.com'
@@ -91,14 +101,14 @@ describe('model provider settings', () => {
     next.agents.kun = {
       ...defaultKunRuntimeSettings(),
       providerId: '',
-      model: DEFAULT_SGLANG_MODEL,
+      model: DEFAULT_MLX_LM_MODEL,
       modelProviderAuthType: 'none',
       baseUrl: ''
     }
     const runtime = resolveKunRuntimeSettings(next)
 
     expect(runtime.modelProviderAuthType).toBe('none')
-    expect(runtime.baseUrl).toBe(DEFAULT_SGLANG_BASE_URL)
+    expect(runtime.baseUrl).toBe(DEFAULT_MLX_LM_BASE_URL)
     expect(hasKunRuntimeModelCredentials(next)).toBe(true)
   })
 

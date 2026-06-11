@@ -77,6 +77,11 @@ const DEFAULT_COMPACTION_SUMMARY_TIMEOUT_MS = 15_000
 const DEFAULT_COMPACTION_SUMMARY_MAX_TOKENS = 1_200
 const DEFAULT_COMPACTION_SUMMARY_INPUT_MAX_BYTES = 96 * 1024
 const SIMPLE_CHAT_FAST_PATH_MAX_CHARS = 80
+const SIMPLE_CHAT_SYSTEM_PROMPT = [
+  'You are Kun, a concise and helpful assistant.',
+  "Reply naturally in the user's language.",
+  'For greetings and small talk, answer briefly without using tools.'
+].join(' ')
 
 const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
   setup: 'Setup',
@@ -657,10 +662,10 @@ export class AgentLoop {
       threadId,
       turnId,
       model,
-      systemPrompt: this.opts.prefix.systemPrompt,
+      systemPrompt: simpleChatFastPath ? SIMPLE_CHAT_SYSTEM_PROMPT : this.opts.prefix.systemPrompt,
       ...(planTurnActive ? { modeInstruction: PLAN_MODE_INSTRUCTION } : {}),
       ...(contextInstructions.length ? { contextInstructions } : {}),
-      prefix: this.opts.prefix.fewShots,
+      prefix: simpleChatFastPath ? [] : this.opts.prefix.fewShots,
       history,
       ...(attachments.imageAttachments.length ? { attachments: attachments.imageAttachments } : {}),
       ...(attachments.textFallbacks.length ? { attachmentTextFallbacks: attachments.textFallbacks } : {}),

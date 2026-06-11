@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path'
 import {
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
   defaultKunTokenEconomySettings,
   getModelProviderProfile,
@@ -46,6 +47,7 @@ import {
 } from './claw-schedule-mcp-config'
 import { defaultKunDataDir } from './runtime/kun-adapter'
 import { appendManagedLogLine } from './logger'
+import { ensureMlxLmServerForRuntime, type MlxLmRuntimeEnsureOptions } from './mlx-lm-runtime'
 import { ensureSglangServerForRuntime } from './sglang-runtime'
 import { guiSkillRootsForRuntime, normalizeSkillRootPath } from './services/skill-service'
 
@@ -295,22 +297,48 @@ async function resolveFastLaunchRuntime(
   settings: AppSettingsV1,
   runtime: KunRuntimeSettingsV1
 ): Promise<KunRuntimeSettingsV1> {
-  if (!isSglangRuntime(runtime)) return runtime
+  if (isMlxLmRuntime(runtime)) {
+    return resolveLocalGemmaRuntime(settings, runtime, 'MLX-LM', ensureMlxLmServerForRuntime)
+  }
+  if (isSglangRuntime(runtime)) {
+    return resolveLocalGemmaRuntime(settings, runtime, 'SGLang', ensureSglangServerForRuntime)
+  }
+  return runtime
+}
 
+type LocalGemmaEnsureOptions = MlxLmRuntimeEnsureOptions
+type LocalGemmaEnsure = (
+  runtime: KunRuntimeSettingsV1,
+  options?: LocalGemmaEnsureOptions
+) => Promise<void>
+
+async function resolveLocalGemmaRuntime(
+  settings: AppSettingsV1,
+  runtime: KunRuntimeSettingsV1,
+  label: string,
+  ensureServer: LocalGemmaEnsure
+): Promise<KunRuntimeSettingsV1> {
+  const fallback = buildOllamaFallbackRuntime(settings, runtime)
+  const fallbackReady = fallback ? await isOllamaRuntimeReady(fallback) : false
   try {
-    await ensureSglangServerForRuntime(runtime, { startupTimeoutMs: SGLANG_FAST_FALLBACK_MS })
+    await ensureServer(runtime, {
+      startupTimeoutMs: fallbackReady ? SGLANG_FAST_FALLBACK_MS : undefined
+    })
     return runtime
   } catch (error) {
-    const fallback = buildOllamaFallbackRuntime(settings, runtime)
-    if (fallback && await isOllamaRuntimeReady(fallback)) {
+    if (fallback && fallbackReady) {
       const reason = error instanceof Error ? error.message.split('\n')[0] : String(error)
       logKunRuntimeFallback(
-        `SGLang is warming up or unavailable; starting Kun with Ollama fallback (${fallback.baseUrl}, ${fallback.model}). Reason: ${reason}`
+        `${label} is warming up or unavailable; starting Kun with Ollama fallback (${fallback.baseUrl}, ${fallback.model}). Reason: ${reason}`
       )
       return fallback
     }
     throw error
   }
+}
+
+function isMlxLmRuntime(runtime: KunRuntimeSettingsV1): boolean {
+  return runtime.modelProviderAuthType === 'none' && runtime.providerId === MLX_LM_MODEL_PROVIDER_ID
 }
 
 function isSglangRuntime(runtime: KunRuntimeSettingsV1): boolean {

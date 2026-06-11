@@ -40,6 +40,7 @@ import {
   runtimeRequestViaHost
 } from './runtime/kun-adapter'
 import { configureLogger, logError, logWarn, pruneOnStartup } from './logger'
+import { stopMlxLmServerAndWait } from './mlx-lm-runtime'
 import { stopSglangServerAndWait } from './sglang-runtime'
 import { createClawRuntime, type ClawRuntime } from './claw-runtime'
 import { createScheduleRuntime, type ScheduleRuntime } from './schedule-runtime'
@@ -197,6 +198,7 @@ async function stopManagedRuntimes(): Promise<void> {
       clawRuntime?.stop()
       stopWeixinBridgeRuntime()
       await kunRuntimeAdapter.stopAndWait()
+      await stopMlxLmServerAndWait()
       await stopSglangServerAndWait()
     })().finally(() => {
       managedRuntimesStopPromise = null

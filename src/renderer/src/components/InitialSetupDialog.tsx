@@ -7,11 +7,11 @@ import {
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_DEEPSEEK_BASE_URL,
   DEFAULT_KUN_MODEL_PROVIDER_ID,
+  DEFAULT_MLX_LM_BASE_URL,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
-  DEFAULT_SGLANG_BASE_URL,
+  MLX_LM_MODEL_PROVIDER_ID,
   OLLAMA_MODEL_PROVIDER_ID,
-  SGLANG_MODEL_PROVIDER_ID,
   getActiveAgentApiKey,
   getModelProviderSettings,
   normalizeAppSettings,
@@ -203,7 +203,7 @@ export function InitialSetupDialog(): ReactElement {
   const localBaseUrlPlaceholder =
     selectedProviderId === OLLAMA_MODEL_PROVIDER_ID
       ? DEFAULT_OLLAMA_BASE_URL
-      : DEFAULT_SGLANG_BASE_URL
+      : DEFAULT_MLX_LM_BASE_URL
   return (
     <div className="ds-no-drag fixed inset-0 z-50 overflow-y-auto bg-[#eef2fb]/45 p-3 backdrop-blur-[18px] dark:bg-black/62 dark:backdrop-blur-[22px] sm:p-6">
       <div className="flex min-h-full items-center justify-center">
@@ -291,8 +291,8 @@ export function InitialSetupDialog(): ReactElement {
             <div className="grid grid-cols-1 gap-2 sm:gap-2.5 min-[560px]:grid-cols-2">
               <button
                 type="button"
-                onClick={() => handleProviderChoice(SGLANG_MODEL_PROVIDER_ID, 'none')}
-                className={providerChoiceClass(selectedProviderId === SGLANG_MODEL_PROVIDER_ID)}
+                onClick={() => handleProviderChoice(MLX_LM_MODEL_PROVIDER_ID, 'none')}
+                className={providerChoiceClass(selectedProviderId === MLX_LM_MODEL_PROVIDER_ID)}
               >
                 <Cpu className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
                 <span className="grid min-w-0 gap-1">
