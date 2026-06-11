@@ -76,6 +76,7 @@ const MAX_PARALLEL_TOOL_CALLS = 3
 const DEFAULT_COMPACTION_SUMMARY_TIMEOUT_MS = 15_000
 const DEFAULT_COMPACTION_SUMMARY_MAX_TOKENS = 1_200
 const DEFAULT_COMPACTION_SUMMARY_INPUT_MAX_BYTES = 96 * 1024
+const SIMPLE_CHAT_FAST_PATH_MAX_CHARS = 80
 
 const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
   setup: 'Setup',
@@ -123,6 +124,31 @@ export const PLAN_MODE_INSTRUCTION = [
   'Write concrete, actionable steps (summary, implementation steps, tests, risks) rather than vague intentions.',
   'After saving, give the user a short summary of the plan and what to review.'
 ].join('\n')
+
+export function shouldUseSimpleChatFastPath(input: {
+  prompt: string
+  mode?: 'agent' | 'plan'
+  hasGuiPlan: boolean
+  attachmentCount: number
+  activeSkillCount: number
+  hasActiveGoal: boolean
+  hasTodos: boolean
+}): boolean {
+  if (input.mode === 'plan' || input.hasGuiPlan) return false
+  if (input.attachmentCount > 0 || input.activeSkillCount > 0) return false
+  if (input.hasActiveGoal || input.hasTodos) return false
+  const prompt = input.prompt.trim()
+  if (!prompt || prompt.length > SIMPLE_CHAT_FAST_PATH_MAX_CHARS) return false
+  const normalized = prompt
+    .toLowerCase()
+    .replace(/[!?.,。！？~…\s]+$/g, '')
+    .trim()
+  if (!normalized) return false
+  if (/^(hi|hello|hey|thanks|thank you|ok|okay|yo)$/.test(normalized)) return true
+  if (/^(안녕|안녕하세요|하이|고마워|고맙습니다|감사합니다|오케이|ㅇㅋ)$/.test(normalized)) return true
+  if (/^(hi|hello|hey|안녕|안녕하세요|하이)[\s,!.~]*(한\s*문장|one sentence|briefly|짧게)?/.test(normalized)) return true
+  return false
+}
 
 function goalContinuationInstruction(goal: ThreadGoal | undefined): string | null {
   if (!goal || goal.status !== 'active') return null
@@ -523,6 +549,15 @@ export class AgentLoop {
       ? null
       : goalContinuationInstruction(thread?.goal)
     const activeTodoInstruction = todoContinuationInstruction(thread?.todos)
+    const simpleChatFastPath = shouldUseSimpleChatFastPath({
+      prompt: turn?.prompt ?? '',
+      mode: effectiveMode,
+      hasGuiPlan: Boolean(activePlanContext),
+      attachmentCount: turn?.attachmentIds?.length ?? 0,
+      activeSkillCount: skillResolution.activeSkillIds.length,
+      hasActiveGoal: activeGoalInstruction !== null,
+      hasTodos: (thread?.todos?.items.length ?? 0) > 0
+    })
     const allowedToolNames = allowedToolNamesWithGuiStateTools(
       skillResolution.allowedToolNames,
       activeGoalInstruction !== null
@@ -543,7 +578,7 @@ export class AgentLoop {
       awaitApproval: async () => 'allow',
       awaitUserInput: (input) => this.awaitUserInput(threadId, turnId, input, signal)
     }
-    const tools = await this.opts.toolHost.listTools(toolContext)
+    const tools = simpleChatFastPath ? [] : await this.opts.toolHost.listTools(toolContext)
     const toolSpecs: ModelToolSpec[] = tools
     const toolProviderMetadata = new Map(
       tools.map((tool) => [tool.name, { providerId: tool.providerId, providerKind: tool.providerKind }])
@@ -556,6 +591,7 @@ export class AgentLoop {
       model: modelCapabilities.id,
       activeSkillIds: skillResolution.activeSkillIds,
       allowedToolNames,
+      toolProfile: simpleChatFastPath ? 'simple-chat' : 'default',
       fingerprint: toolCatalog.fingerprint,
       toolNames: toolCatalog.toolNames,
       toolHashes: toolCatalog.toolHashes
@@ -660,6 +696,7 @@ export class AgentLoop {
       model: request.model,
       historyItems: request.history.length,
       toolCount: request.tools.length,
+      ...(simpleChatFastPath ? { toolProfile: 'simple-chat' } : {}),
       ...(request.requiredToolName ? { requiredToolName: request.requiredToolName } : {}),
       ...attachmentRequestPipelineDetails({
         attachmentIds: turn?.attachmentIds ?? [],
@@ -1553,6 +1590,7 @@ export class AgentLoop {
     model: string
     activeSkillIds: readonly string[]
     allowedToolNames?: readonly string[]
+    toolProfile?: string
     fingerprint: string
     toolNames: string[]
     toolHashes: Record<string, string>
@@ -1563,7 +1601,8 @@ export class AgentLoop {
       mode: input.mode,
       model: input.model,
       activeSkillIds: [...input.activeSkillIds].sort(),
-      allowedToolNames: input.allowedToolNames ? [...input.allowedToolNames].sort() : []
+      allowedToolNames: input.allowedToolNames ? [...input.allowedToolNames].sort() : [],
+      toolProfile: input.toolProfile ?? 'default'
     })
     const current: ToolCatalogSnapshot = {
       fingerprint: input.fingerprint,
