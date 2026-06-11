@@ -155,6 +155,35 @@ describe('app-ipc-schemas', () => {
     expect(payload.write?.inlineCompletion?.model).toBe('deepseek-v4-pro')
   })
 
+  it('accepts no-auth SGLang provider settings patches', () => {
+    const payload = settingsPatchSchema.parse({
+      provider: {
+        providers: [
+          {
+            id: 'sglang-gemma',
+            name: 'Turbo Engine: SGLang',
+            authType: 'none',
+            apiKey: '',
+            baseUrl: 'http://127.0.0.1:30000',
+            models: ['gemma4-12b']
+          }
+        ]
+      },
+      agents: {
+        kun: {
+          providerId: 'sglang-gemma',
+          model: 'gemma4-12b',
+          modelProviderAuthType: 'none',
+          apiKey: '',
+          baseUrl: ''
+        }
+      }
+    })
+
+    expect(payload.provider?.providers?.[0]?.authType).toBe('none')
+    expect(payload.agents?.kun?.modelProviderAuthType).toBe('none')
+  })
+
   it('accepts no-auth Ollama provider settings patches', () => {
     const payload = settingsPatchSchema.parse({
       provider: {

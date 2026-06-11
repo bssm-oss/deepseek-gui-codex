@@ -8,7 +8,10 @@ import {
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
+  DEFAULT_SGLANG_BASE_URL,
+  DEFAULT_SGLANG_MODEL,
   OLLAMA_MODEL_PROVIDER_ID,
+  SGLANG_MODEL_PROVIDER_ID,
   buildInitialSetupProviderPatch,
   defaultClawSettings,
   defaultKeyboardShortcuts,
@@ -96,8 +99,48 @@ describe('initial setup provider patch', () => {
     expect(next.agents.kun.codexAuthPath).toBe('')
   })
 
-  it('selects local Gemma through Ollama without an API key', () => {
+  it('selects local Gemma through SGLang by default without an API key', () => {
     const next = applyProviderPatch(settings(), 'none')
+    const runtime = resolveKunRuntimeSettings(next)
+    const sglangProvider = next.provider.providers.find((provider) =>
+      provider.id === SGLANG_MODEL_PROVIDER_ID
+    )
+
+    expect(next.agents.kun.providerId).toBe(SGLANG_MODEL_PROVIDER_ID)
+    expect(next.agents.kun.model).toBe(DEFAULT_SGLANG_MODEL)
+    expect(sglangProvider).toMatchObject({
+      authType: 'none',
+      apiKey: '',
+      baseUrl: DEFAULT_SGLANG_BASE_URL,
+      codexAuthPath: '',
+      models: [DEFAULT_SGLANG_MODEL]
+    })
+    expect(runtime.modelProviderAuthType).toBe('none')
+    expect(runtime.apiKey).toBe('')
+    expect(runtime.baseUrl).toBe(DEFAULT_SGLANG_BASE_URL)
+  })
+
+  it('can still select local Gemma through Ollama without an API key', () => {
+    const initial = settings()
+    const patch = buildInitialSetupProviderPatch(initial, 'none', OLLAMA_MODEL_PROVIDER_ID)
+    const next = normalizeAppSettings({
+      ...initial,
+      ...patch,
+      provider: {
+        ...initial.provider,
+        ...(patch.provider ?? {})
+      },
+      agents: patch.agents
+        ? {
+            ...initial.agents,
+            ...patch.agents,
+            kun: {
+              ...initial.agents.kun,
+              ...(patch.agents.kun ?? {})
+            }
+          }
+        : initial.agents
+    } as AppSettingsV1)
     const runtime = resolveKunRuntimeSettings(next)
     const ollamaProvider = next.provider.providers.find((provider) =>
       provider.id === OLLAMA_MODEL_PROVIDER_ID

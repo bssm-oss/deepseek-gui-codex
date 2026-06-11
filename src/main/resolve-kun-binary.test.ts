@@ -113,6 +113,35 @@ describe('buildKunServeArgs', () => {
     expect(args).toContain('false')
   })
 
+  it('passes the no-auth model provider mode for local SGLang runtimes', () => {
+    const resolution: KunBinaryResolution = {
+      kind: 'node-script',
+      command: '/usr/bin/node',
+      args: ['/app/kun/dist/cli/serve-entry.js'],
+      dataDir: ''
+    }
+
+    const args = buildKunServeArgs({
+      resolution,
+      host: '127.0.0.1',
+      port: 8899,
+      dataDir: '/tmp/kun',
+      baseUrl: 'http://127.0.0.1:30000',
+      model: 'gemma4-12b',
+      modelProviderAuthType: 'none',
+      approvalPolicy: 'on-request',
+      sandboxMode: 'workspace-write',
+      tokenEconomyMode: false,
+      insecure: false
+    })
+
+    expect(args).toContain('--model-provider-auth-type')
+    expect(args).toContain('none')
+    expect(args).toContain('http://127.0.0.1:30000')
+    expect(args).toContain('gemma4-12b')
+    expect(args).not.toContain('--api-key')
+  })
+
   it('passes the no-auth model provider mode for local Ollama runtimes', () => {
     const resolution: KunBinaryResolution = {
       kind: 'node-script',

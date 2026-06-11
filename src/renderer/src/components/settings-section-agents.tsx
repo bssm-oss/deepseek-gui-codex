@@ -11,15 +11,19 @@ import {
   DEFAULT_CODEX_AUTH_PATH,
   DEFAULT_CODEX_OAUTH_BASE_URL,
   DEFAULT_CODEX_OAUTH_MODEL,
+  DEFAULT_KUN_MODEL_PROVIDER_ID,
   DEFAULT_MODEL_PROVIDER_ID,
   DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
+  DEFAULT_SGLANG_BASE_URL,
+  DEFAULT_SGLANG_MODEL,
   DEFAULT_WRITE_INLINE_COMPLETION_BASE_URL,
   DEFAULT_WRITE_INLINE_COMPLETION_MAX_TOKENS,
   DEFAULT_WRITE_INLINE_COMPLETION_MODEL,
   DEFAULT_WRITE_INLINE_LONG_COMPLETION_MAX_TOKENS,
   DEFAULT_KUN_DATA_DIR,
   OLLAMA_MODEL_PROVIDER_ID,
+  SGLANG_MODEL_PROVIDER_ID,
   WRITE_INLINE_COMPLETION_MODEL_IDS,
   defaultModelProviderSettings,
   isKunRuntimeInsecure
@@ -403,7 +407,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
   }
   const provider = providerFromContext ?? form.provider ?? defaultModelProviderSettings()
   const modelProviders = provider.providers as ModelProviderProfileV1[]
-  const activeProviderId = kun.providerId?.trim() || DEFAULT_MODEL_PROVIDER_ID
+  const activeProviderId = kun.providerId?.trim() || DEFAULT_KUN_MODEL_PROVIDER_ID
   const activeProvider = modelProviders.find((item) => item.id === activeProviderId) ?? modelProviders[0]
   const updateModelProviders = (providers: ModelProviderProfileV1[]): void => {
     const defaultProvider = providers.find((item) => item.id === DEFAULT_MODEL_PROVIDER_ID)
@@ -436,9 +440,13 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
             apiKey: '',
             baseUrl: activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
               ? activeProvider.baseUrl.trim() || DEFAULT_OLLAMA_BASE_URL
-              : activeProvider.baseUrl,
+              : activeProvider.baseUrl.trim() || DEFAULT_SGLANG_BASE_URL,
             codexAuthPath: '',
-            models: activeProvider.models.length > 0 ? activeProvider.models : [DEFAULT_OLLAMA_MODEL]
+            models: activeProvider.models.length > 0
+              ? activeProvider.models
+              : activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
+                ? [DEFAULT_OLLAMA_MODEL]
+                : [DEFAULT_SGLANG_MODEL]
           }
         : {
             authType,
@@ -467,11 +475,16 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
     updateKun({ providerId: id })
   }
   const removeModelProvider = (id: string): void => {
-    if (id === DEFAULT_MODEL_PROVIDER_ID || id === CODEX_OAUTH_MODEL_PROVIDER_ID) return
+    if (
+      id === DEFAULT_MODEL_PROVIDER_ID ||
+      id === CODEX_OAUTH_MODEL_PROVIDER_ID ||
+      id === SGLANG_MODEL_PROVIDER_ID ||
+      id === OLLAMA_MODEL_PROVIDER_ID
+    ) return
     const nextProviders = modelProviders.filter((item) => item.id !== id)
     updateModelProviders(nextProviders)
     if (activeProviderId === id) {
-      updateKun({ providerId: DEFAULT_MODEL_PROVIDER_ID })
+      updateKun({ providerId: DEFAULT_KUN_MODEL_PROVIDER_ID })
     }
   }
 
@@ -527,7 +540,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                         <div className="space-y-2">
                           <select
                             className={selectControlClass}
-                            value={activeProvider?.id ?? DEFAULT_MODEL_PROVIDER_ID}
+                            value={activeProvider?.id ?? DEFAULT_KUN_MODEL_PROVIDER_ID}
                             onChange={(e) => selectModelProvider(e.target.value)}
                           >
                             {modelProviders.map((item) => (
@@ -625,6 +638,10 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                                 value={activeProvider.models.join('\n')}
                                 placeholder={activeProvider.authType === 'codex-oauth'
                                   ? DEFAULT_CODEX_OAUTH_MODEL
+                                  : activeProvider.id === SGLANG_MODEL_PROVIDER_ID
+                                    ? DEFAULT_SGLANG_MODEL
+                                    : activeProvider.id === OLLAMA_MODEL_PROVIDER_ID
+                                      ? DEFAULT_OLLAMA_MODEL
                                   : 'deepseek-v4-pro\ndeepseek-v4-flash'}
                                 onChange={(e) => updateModelProvider(activeProvider.id, {
                                   models: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean)
@@ -633,6 +650,7 @@ export function AgentsSettingsSection({ ctx }: { ctx: Record<string, any> }): Re
                             </label>
                             {activeProvider.id !== DEFAULT_MODEL_PROVIDER_ID &&
                             activeProvider.id !== CODEX_OAUTH_MODEL_PROVIDER_ID &&
+                            activeProvider.id !== SGLANG_MODEL_PROVIDER_ID &&
                             activeProvider.id !== OLLAMA_MODEL_PROVIDER_ID ? (
                               <button
                                 type="button"
