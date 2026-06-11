@@ -380,4 +380,46 @@ describe('MessageTimeline Kun runtime metadata smoke', () => {
     expect(html).toContain('/tmp/project/src/app.ts')
     expect(html).not.toContain('running timeline detail should stay collapsed')
   })
+
+  it('expands failed completed work by default so runtime errors are visible', () => {
+    const blocks: ChatBlock[] = [
+      {
+        kind: 'user',
+        id: 'user_failed',
+        text: 'create a file'
+      },
+      toolBlock({
+        id: 'tool_write',
+        summary: 'write: file',
+        status: 'success',
+        detail: 'file written',
+        meta: { toolName: 'write' },
+        filePath: '/tmp/project/out.txt'
+      }),
+      {
+        kind: 'system',
+        id: 'runtime_error_turn_1',
+        text: 'model request failed with status 400',
+        detail: 'Code: http_400\n\nMessage:\nmodel request failed with status 400',
+        code: 'http_400',
+        severity: 'error'
+      }
+    ]
+
+    const html = renderToStaticMarkup(
+      createElement(MessageTimeline, {
+        blocks,
+        liveReasoning: '',
+        live: '',
+        activeThreadId: 'thr_1',
+        runtimeConnection: 'ready',
+        onRetryConnection: () => undefined,
+        onOpenSettings: () => undefined
+      })
+    )
+
+    expect(html).toContain('aria-expanded="true"')
+    expect(html).toContain('model request failed with status 400')
+    expect(html).toContain('Code: http_400')
+  })
 })

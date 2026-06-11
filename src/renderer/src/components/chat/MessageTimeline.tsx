@@ -314,7 +314,6 @@ function MessageTurn({
   const { think: liveThink, content: liveContent } = splitThink(live)
   const liveProcessText = [liveReasoning, liveThink].filter(Boolean).join('\n\n')
   const [workExpandedOverride, setWorkExpandedOverride] = useState<boolean | null>(null)
-  const workExpanded = workExpandedOverride ?? isProcessing
 
   const { processBlocks, assistantContentBlocks, turnFileChanges } = useMemo(
     () =>
@@ -327,6 +326,14 @@ function MessageTurn({
       }),
     [turn, isProcessing, liveProcessText, liveContent, workspaceRoot]
   )
+  const processHasError = processBlocks.some((block) =>
+    (block.kind === 'tool' && block.status === 'error') ||
+    (block.kind === 'compaction' && block.status === 'error') ||
+    (block.kind === 'approval' && block.status === 'error') ||
+    (block.kind === 'user_input' && block.status === 'error') ||
+    (block.kind === 'system' && block.severity === 'error')
+  )
+  const workExpanded = workExpandedOverride ?? (isProcessing || processHasError)
   const reviewBlocks = useMemo(
     () => turn.blocks.filter((block) => block.kind === 'review'),
     [turn.blocks]
@@ -359,7 +366,7 @@ function MessageTurn({
             durationMs={durationMs}
             reasoningDurationMs={reasoningDurationMs}
             expanded={workExpanded}
-            onToggle={() => setWorkExpandedOverride((value) => !(value ?? isProcessing))}
+            onToggle={() => setWorkExpandedOverride((value) => !(value ?? (isProcessing || processHasError)))}
           />
           {workExpanded && processSections.length > 0 ? (
             <div className="flex flex-col gap-1">
