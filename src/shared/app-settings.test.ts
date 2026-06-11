@@ -18,6 +18,7 @@ import {
   mergeScheduleSettings,
   defaultKunRuntimeSettings,
   defaultScheduleSettings,
+  defaultTestSpriteSettings,
   defaultWriteSettings,
   defaultKeyboardShortcuts,
   isKunRuntimeInsecure,
@@ -52,6 +53,7 @@ function settings(): AppSettingsV1 {
     claw: defaultClawSettings(),
     schedule: defaultScheduleSettings(),
     guiUpdate: { channel: 'stable' },
+    testSprite: defaultTestSpriteSettings(),
     codePromptPrefix: ''
   }
 }
@@ -183,6 +185,41 @@ describe('app behavior settings', () => {
       startMinimized: false,
       closeToTray: true
     })
+  })
+})
+
+describe('TestSprite settings', () => {
+  it('defaults TestSprite to disabled MCP launch settings', () => {
+    expect(defaultTestSpriteSettings()).toMatchObject({
+      enabled: false,
+      apiKey: '',
+      command: 'npx',
+      args: ['-y', '@testsprite/testsprite-mcp@latest'],
+      timeoutMs: 120000
+    })
+  })
+
+  it('normalizes missing and invalid TestSprite settings', () => {
+    const normalized = normalizeAppSettings({
+      ...settings(),
+      testSprite: {
+        enabled: true,
+        apiKey: '  sk-user-example  ',
+        command: '  ',
+        args: ['', ' @testsprite/testsprite-mcp@latest '],
+        timeoutMs: 1,
+        promptPrefix: ''
+      }
+    })
+
+    expect(normalized.testSprite).toMatchObject({
+      enabled: true,
+      apiKey: 'sk-user-example',
+      command: 'npx',
+      args: ['@testsprite/testsprite-mcp@latest'],
+      timeoutMs: 5000
+    })
+    expect(normalized.testSprite?.promptPrefix).toContain('Use TestSprite MCP')
   })
 })
 

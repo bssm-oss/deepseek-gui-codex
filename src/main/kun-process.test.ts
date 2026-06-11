@@ -9,6 +9,7 @@ import {
   defaultKeyboardShortcuts,
   defaultKunRuntimeSettings,
   defaultModelProviderSettings,
+  defaultTestSpriteSettings,
   DEFAULT_MLX_LM_BASE_URL,
   DEFAULT_MLX_LM_MODEL,
   DEFAULT_OLLAMA_MODEL,
@@ -354,6 +355,45 @@ describe('syncGuiManagedKunConfig', () => {
       },
       trustScope: 'user'
     })
+  })
+
+  it('adds the configured TestSprite MCP server to Kun runtime capabilities', async () => {
+    if (!tempRoot) throw new Error('temp root not initialized')
+    const configPath = join(tempRoot, 'config.json')
+    const module = await import('./kun-process')
+    const settings = createSettings('/tmp/fake-kun-child.js')
+    settings.testSprite = {
+      ...defaultTestSpriteSettings(),
+      enabled: true,
+      apiKey: 'sk-user-test',
+      timeoutMs: 180000
+    }
+
+    await module.syncGuiManagedKunConfig(tempRoot, defaultKunRuntimeSettings(), {
+      scheduleMcp: {
+        settings,
+        launch: {
+          appPath: '/tmp/deepseek-gui-test-app',
+          execPath: '/tmp/electron',
+          isPackaged: false
+        }
+      }
+    })
+
+    const parsed = JSON.parse(readFileSync(configPath, 'utf8')) as any
+    expect(parsed.capabilities.mcp.enabled).toBe(true)
+    expect(parsed.capabilities.mcp.servers.testsprite).toMatchObject({
+      enabled: true,
+      transport: 'stdio',
+      command: 'npx',
+      args: ['-y', '@testsprite/testsprite-mcp@latest'],
+      env: {
+        API_KEY: 'sk-user-test'
+      },
+      trustScope: 'user',
+      timeoutMs: 180000
+    })
+    expect(KunConfigSchema.safeParse(parsed).success).toBe(true)
   })
 
   it('adds GUI project and configured global skill roots to Kun runtime capabilities', async () => {

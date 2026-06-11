@@ -462,6 +462,15 @@ const scheduleSettingsPatchSchema = z.object({
   tasks: z.array(scheduledTaskPatchSchema).max(512).optional()
 }).strict()
 
+const testSpriteSettingsPatchSchema = z.object({
+  enabled: z.boolean().optional(),
+  apiKey: z.string().max(MAX_BODY_BYTES).optional(),
+  command: z.string().trim().min(1).max(MAX_PATH_LENGTH).optional(),
+  args: z.array(z.string().trim().min(1).max(512)).max(64).optional(),
+  timeoutMs: z.number().int().min(5_000).max(600_000).optional(),
+  promptPrefix: z.string().max(MAX_CHANNEL_TEXT_LENGTH).optional()
+}).strict()
+
 function stripLegacySettingsPatchKeys(payload: unknown): unknown {
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return payload
   const source = payload as Record<string, unknown>
@@ -503,6 +512,7 @@ const settingsPatchObjectSchema = z.object({
   guiUpdate: z.object({
     channel: z.enum(GUI_UPDATE_CHANNELS).optional()
   }).strict().optional(),
+  testSprite: testSpriteSettingsPatchSchema.optional(),
   codePromptPrefix: z.string().max(MAX_CHANNEL_TEXT_LENGTH).optional()
 }).strict()
 

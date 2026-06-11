@@ -11,6 +11,7 @@ import {
   Download,
   ExternalLink,
   FileEdit,
+  FlaskConical,
   FolderOpen,
   Globe2,
   ListTodo,
@@ -33,6 +34,8 @@ type Props = {
   sideChatOpen?: boolean
   sideChatEnabled?: boolean
   onOpenSideChat?: () => void
+  onRunTestSpriteQa?: () => void
+  testSpriteBusy?: boolean
 }
 
 export function WorkbenchTopBar({
@@ -43,7 +46,9 @@ export function WorkbenchTopBar({
   sideChatRunningCount = 0,
   sideChatOpen = false,
   sideChatEnabled = true,
-  onOpenSideChat
+  onOpenSideChat,
+  onRunTestSpriteQa,
+  testSpriteBusy = false
 }: Props): ReactElement {
   const { t } = useTranslation(['common', 'settings'])
   const [editors, setEditors] = useState<EditorInfo[]>([])
@@ -311,6 +316,23 @@ export function WorkbenchTopBar({
           </div>
         ) : null}
       </div>
+
+      {onRunTestSpriteQa ? (
+        <button
+          type="button"
+          onClick={onRunTestSpriteQa}
+          disabled={testSpriteBusy}
+          className="rounded-full border border-transparent bg-white/38 px-2.5 py-1.5 text-ds-faint opacity-90 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition hover:border-ds-border-muted hover:bg-white/55 hover:text-ds-ink hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-45 dark:bg-white/4 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] dark:hover:bg-white/8"
+          aria-label={t('testSpriteRunQa')}
+          title={t('testSpriteRunQa')}
+        >
+          {testSpriteBusy ? (
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.9} />
+          ) : (
+            <FlaskConical className="h-4 w-4" strokeWidth={1.75} />
+          )}
+        </button>
+      ) : null}
 
       {onOpenSideChat ? (
         <button
