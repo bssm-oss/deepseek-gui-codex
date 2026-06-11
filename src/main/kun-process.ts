@@ -41,6 +41,7 @@ import {
 } from './claw-schedule-mcp-config'
 import { defaultKunDataDir } from './runtime/kun-adapter'
 import { appendManagedLogLine } from './logger'
+import { ensureSglangServerForRuntime } from './sglang-runtime'
 import { guiSkillRootsForRuntime, normalizeSkillRootPath } from './services/skill-service'
 
 let child: ChildProcess | null = null
@@ -202,6 +203,7 @@ export async function startKunChild(settings: AppSettingsV1): Promise<void> {
     await childLogCapture.close()
     childLogCapture = null
   }
+  await ensureSglangServerForRuntime(runtime)
   const root = appRoot()
   const resolution = resolveKunExecutable(root, runtime.binaryPath)
   if (resolution.command === process.execPath && !existsSync(resolution.args[0])) {

@@ -9,6 +9,8 @@ import {
   defaultKeyboardShortcuts,
   defaultKunRuntimeSettings,
   defaultModelProviderSettings,
+  DEFAULT_OLLAMA_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
   defaultScheduleSettings,
   defaultWriteSettings,
   type AppSettingsV1
@@ -36,7 +38,9 @@ function createSettings(binaryPath: string): AppSettingsV1 {
       kun: {
         ...defaultKunRuntimeSettings(8899),
         binaryPath,
-        autoStart: true
+        autoStart: true,
+        providerId: OLLAMA_MODEL_PROVIDER_ID,
+        model: DEFAULT_OLLAMA_MODEL
       }
     },
     workspaceRoot: '/tmp/workspace',
