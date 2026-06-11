@@ -577,25 +577,25 @@ async function ensureRuntime(settings: AppSettingsV1): Promise<void> {
   if (pending) {
     // Wait for the in-flight ensure, then re-evaluate against the
     // fingerprint so callers don't inherit a stale result.
+    let pendingSucceeded = false
     try {
       await pending
+      pendingSucceeded = true
     } catch {
       /* fall through to retry with the current settings */
     }
-    if (runtimeEnsureFingerprint === fingerprint) return
+    if (pendingSucceeded && runtimeEnsureFingerprint === fingerprint) return
   }
   const task = ensureRuntimeOnce(settings)
-  runtimeEnsurePromise = task.finally(() => {
-    if (runtimeEnsurePromise === task) {
-      runtimeEnsurePromise = null
-      runtimeEnsureFingerprint = null
-    }
-  })
+  runtimeEnsurePromise = task
   runtimeEnsureFingerprint = fingerprint
   try {
     return await task
   } finally {
-    /* cleanup runs via the .finally above */
+    if (runtimeEnsurePromise === task) {
+      runtimeEnsurePromise = null
+      runtimeEnsureFingerprint = null
+    }
   }
 }
 
