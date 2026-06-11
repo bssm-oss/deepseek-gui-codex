@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { makeUserItem } from '../../domain/item.js'
+import { makeToolCallItem, makeToolResultItem, makeUserItem } from '../../domain/item.js'
 import type { ModelRequest } from '../../ports/model-client.js'
 import { DeepseekCompatModelClient } from './deepseek-compat-model-client.js'
 
@@ -23,6 +23,55 @@ describe('DeepseekCompatModelClient local max tokens', () => {
 
     expect(body).not.toHaveProperty('max_tokens')
     expect(body.options).toMatchObject({ num_predict: 256, num_ctx: 16384 })
+  })
+
+  it('formats Ollama native tool results as text instead of leading JSON objects', async () => {
+    const threadId = 'thr_test'
+    const turnId = 'turn_test'
+    const { body } = await captureRequestBody('http://localhost:11434', {
+      history: [
+        makeUserItem({
+          id: 'item_user',
+          threadId,
+          turnId,
+          text: 'write the file'
+        }),
+        makeToolCallItem({
+          id: 'item_call',
+          threadId,
+          turnId,
+          callId: 'call_write',
+          toolName: 'write',
+          arguments: { path: 'smoke.txt', content: 'ok' }
+        }),
+        makeToolResultItem({
+          id: 'item_result',
+          threadId,
+          turnId,
+          callId: 'call_write',
+          toolName: 'write',
+          output: { path: '/tmp/smoke.txt', bytes_written: 2 }
+        })
+      ]
+    })
+
+    const messages = body.messages as Array<{
+      role?: string
+      content?: string
+      tool_call_id?: string
+      tool_calls?: Array<{ function?: { arguments?: unknown } }>
+    }>
+    const assistantToolMessage = messages.find((message) => Array.isArray(message.tool_calls))
+    const toolMessage = messages.find((message) => message.role === 'tool')
+
+    expect(assistantToolMessage?.tool_calls?.[0]?.function?.arguments).toEqual({
+      path: 'smoke.txt',
+      content: 'ok'
+    })
+    expect(toolMessage?.tool_call_id).toBe('call_write')
+    expect(toolMessage?.content).toContain('Tool result for call_write:')
+    expect(toolMessage?.content?.trim().startsWith('{')).toBe(false)
+    expect(toolMessage?.content).toContain('"bytes_written":2')
   })
 })
 

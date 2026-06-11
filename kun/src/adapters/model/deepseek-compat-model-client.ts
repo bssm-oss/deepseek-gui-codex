@@ -287,10 +287,8 @@ export class DeepseekCompatModelClient implements ModelClient {
   private buildOllamaRequestBody(request: ModelRequest, stream: boolean): Record<string, unknown> {
     const requestModel = request.model?.trim()
     const model = requestModel || this.config.model
-    const messages = this.collectMessages(request, model, { thinkingMode: false }).map((message) => {
-      const { reasoning_content: _reasoningContent, ...rest } = message
-      return rest
-    })
+    const messages = this.collectMessages(request, model, { thinkingMode: false })
+      .map(toOllamaNativeMessage)
     const body: Record<string, unknown> = {
       model,
       stream,
@@ -1019,6 +1017,50 @@ function reasoningContentOrSpace(text: string): string {
 function toolResultContent(output: unknown): string {
   if (typeof output === 'string') return output
   return JSON.stringify(output) ?? ''
+}
+
+function toOllamaNativeMessage(message: ChatMessage): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    role: message.role,
+    content: message.role === 'tool'
+      ? ollamaToolResultContent(message.content, message.tool_call_id)
+      : message.content
+  }
+  if (message.name) out.name = message.name
+  if (message.tool_call_id) out.tool_call_id = message.tool_call_id
+  if (message.tool_calls?.length) {
+    out.tool_calls = message.tool_calls.map((call) => ({
+      id: call.id,
+      type: call.type,
+      function: {
+        name: call.function.name,
+        arguments: parseOllamaToolCallArguments(call.function.arguments)
+      }
+    }))
+  }
+  return out
+}
+
+function ollamaToolResultContent(
+  content: ChatMessage['content'],
+  toolCallId: string | undefined
+): string {
+  const rendered = renderChatMessageContentAsText(content).trim()
+  const prefix = toolCallId ? `Tool result for ${toolCallId}:` : 'Tool result:'
+  return rendered ? `${prefix}\n${rendered}` : prefix
+}
+
+function renderChatMessageContentAsText(content: ChatMessage['content']): string {
+  if (typeof content === 'string') return content
+  if (content == null) return ''
+  return content.map((part) => {
+    if (part.type === 'text') return part.text
+    return part.image_url.url
+  }).join('\n')
+}
+
+function parseOllamaToolCallArguments(raw: string): Record<string, unknown> {
+  return repairToolArguments(raw).arguments
 }
 
 function reasoningFromMessage(message: ChatCompletionResponse['choices'][number]['message'] | undefined): string {
