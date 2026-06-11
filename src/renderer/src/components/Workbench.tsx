@@ -6,6 +6,11 @@ import { parseClawCommand } from '@shared/claw-commands'
 import { DEFAULT_COMPOSER_MODEL_IDS } from '@shared/default-composer-models'
 import { buildGuiPlanId, buildPlanRelativePath } from '@shared/gui-plan'
 import {
+  buildTestSpriteRunPrompt,
+  isTestSpriteReady,
+  normalizeTestSpriteSettings
+} from '@shared/app-settings'
+import {
   findKeyboardShortcutCommand,
   keyboardEventToShortcut,
   resolveKeyboardShortcutBindings,
@@ -15,6 +20,7 @@ import type { DesktopCommand, SkillListItem } from '@shared/ds-gui-api'
 import type { ClipboardImageReadResult } from '@shared/workspace-file'
 import type { AttachmentReference, ChatBlock } from '../agent/types'
 import type { CoreRuntimeInfoJson, CoreRuntimeSkillJson } from '../agent/kun-contract'
+import { rendererRuntimeClient } from '../agent/runtime-client'
 import { getProvider } from '../agent/registry'
 import { useChatStore } from '../store/chat-store'
 import { isClawThread } from '../store/chat-store-helpers'
@@ -338,6 +344,7 @@ export function Workbench(): ReactElement {
     useState<ComposerReasoningEffort>('max')
   const [runtimeInfo, setRuntimeInfo] = useState<CoreRuntimeInfoJson | null>(null)
   const [runtimeSkills, setRuntimeSkills] = useState<CoreRuntimeSkillJson[]>([])
+  const [testSpriteBusy, setTestSpriteBusy] = useState(false)
   const [composerAttachments, setComposerAttachments] = useState<AttachmentReference[]>([])
   const [composerFileReferences, setComposerFileReferences] = useState<ComposerFileReference[]>([])
   const [attachmentUploadBusy, setAttachmentUploadBusy] = useState(false)
@@ -804,6 +811,62 @@ export function Workbench(): ReactElement {
         useWriteWorkspaceStore.getState().clearQuotedSelections()
       }
     })()
+  }
+
+  const runTestSpriteQa = async (): Promise<void> => {
+    if (testSpriteBusy) return
+    if (busy) {
+      setError(t('composerQueuePlaceholder'))
+      return
+    }
+    if (runtimeConnection !== 'ready') {
+      setError(t('runtimeActionNeedsConnection'))
+      return
+    }
+
+    setTestSpriteBusy(true)
+    try {
+      const settings = await rendererRuntimeClient.getSettings({ forceRefresh: true })
+      const testSprite = normalizeTestSpriteSettings(settings.testSprite)
+      if (!isTestSpriteReady(testSprite)) {
+        setError(t('testSpriteNotConfigured'))
+        openSettings('testsprite')
+        return
+      }
+
+      const state = useChatStore.getState()
+      const activeThread = state.threads.find((thread) => thread.id === state.activeThreadId)
+      let targetWorkspace = normalizeWorkspaceRoot(activeThread?.workspace || state.workspaceRoot || workspaceRoot)
+      if (!targetWorkspace) {
+        const picked = await chooseWorkspace({ selectThreadAfter: true })
+        targetWorkspace = normalizeWorkspaceRoot(picked || useChatStore.getState().workspaceRoot)
+      }
+      if (!targetWorkspace) {
+        setError(t('workspaceRequiredToCreateThread'))
+        return
+      }
+
+      setRoute('chat')
+      if (!useChatStore.getState().activeThreadId) {
+        await createThread({ workspaceRoot: targetWorkspace })
+      }
+      if (!useChatStore.getState().activeThreadId) {
+        setError(t('workspaceRequiredToCreateThread'))
+        return
+      }
+
+      const prompt = buildTestSpriteRunPrompt({
+        workspaceRoot: targetWorkspace,
+        promptPrefix: testSprite.promptPrefix
+      })
+      await useChatStore.getState().sendMessage(prompt, 'agent', {
+        displayText: t('testSpriteRunDisplayText')
+      })
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setTestSpriteBusy(false)
+    }
   }
 
   const createSddAssistantThreadForDraft = async (draft: SddDraft): Promise<string | null> => {
@@ -1662,6 +1725,8 @@ export function Workbench(): ReactElement {
                     sideChatOpen={sidePanel.open}
                     sideChatEnabled={runtimeConnection === 'ready' && Boolean(activeThreadId)}
                     onOpenSideChat={openSideChat}
+                    onRunTestSpriteQa={() => void runTestSpriteQa()}
+                    testSpriteBusy={testSpriteBusy}
                   />
                 </div>
               </div>

@@ -8,6 +8,7 @@ import {
   mergeClawSettings,
   mergeModelProviderSettings,
   mergeScheduleSettings,
+  mergeTestSpriteSettings,
   mergeWriteSettings,
   normalizeAppBehaviorSettings,
   normalizeClawSettings,
@@ -15,6 +16,7 @@ import {
   normalizeKeyboardShortcuts,
   normalizeModelProviderSettings,
   normalizeScheduleSettings,
+  normalizeTestSpriteSettings,
   normalizeWriteSettings,
   type AppSettingsPatch,
   type AppSettingsV1
@@ -44,7 +46,7 @@ export function hasValidPort(settings: AppSettingsV1): boolean {
 
 export function mergeSettings(current: AppSettingsV1, patch: SettingsPatch): AppSettingsV1 {
   const safeCurrent = coerceRendererSettings(current)
-  const { agents: agentsPatch, provider: providerPatch, ...restPatch } = patch
+  const { agents: agentsPatch, provider: providerPatch, testSprite: testSpritePatch, ...restPatch } = patch
   return {
     ...applyKunRuntimePatch(safeCurrent, agentsPatch?.kun),
     ...restPatch,
@@ -73,7 +75,8 @@ export function mergeSettings(current: AppSettingsV1, patch: SettingsPatch): App
     guiUpdate: {
       ...safeCurrent.guiUpdate,
       ...(patch.guiUpdate ?? {})
-    }
+    },
+    testSprite: mergeTestSpriteSettings(safeCurrent.testSprite, testSpritePatch)
   }
 }
 
@@ -110,6 +113,7 @@ export function coerceRendererSettings(settings: AppSettingsV1): AppSettingsV1 {
     guiUpdate: {
       channel: normalizeGuiUpdateChannel(raw.guiUpdate?.channel ?? DEFAULT_GUI_UPDATE_CHANNEL)
     },
+    testSprite: normalizeTestSpriteSettings(raw.testSprite),
     codePromptPrefix: typeof raw.codePromptPrefix === 'string' ? raw.codePromptPrefix : ''
   }
 }
