@@ -4,6 +4,10 @@ import { basename, dirname, join } from 'node:path'
 import { atomicWriteFile } from '../../kun/src/adapters/file/atomic-write.js'
 import {
   applyKunRuntimePatch,
+  DEFAULT_OLLAMA_MODEL,
+  DEFAULT_SGLANG_MODEL,
+  OLLAMA_MODEL_PROVIDER_ID,
+  SGLANG_MODEL_PROVIDER_ID,
   kunSettingsEnvelope,
   DEFAULT_GUI_UPDATE_CHANNEL,
   DEFAULT_WRITE_WORKSPACE_ROOT,
@@ -25,7 +29,8 @@ import {
   type AppSettingsPatch,
   type AppSettingsV1,
   type ClawImChannelV1,
-  type ClawImConversationV1
+  type ClawImConversationV1,
+  type KunRuntimeSettingsPatchV1
 } from '../shared/app-settings'
 
 export type { AppSettingsV1 }
@@ -147,6 +152,36 @@ function serializeSettingsForDisk(settings: AppSettingsV1): string {
   return JSON.stringify(normalizeStoredSettings(settings), null, 2)
 }
 
+function rawProviderListHadSglangProvider(parsed: Partial<AppSettingsV1>): boolean {
+  const providers = (parsed.provider as { providers?: Array<{ id?: unknown }> } | undefined)?.providers
+  return Array.isArray(providers) && providers.some((provider) =>
+    provider?.id === SGLANG_MODEL_PROVIDER_ID
+  )
+}
+
+function migrateLegacyOllamaDefaultKunPatch(
+  parsed: Partial<AppSettingsV1>,
+  migratedKun: KunRuntimeSettingsPatchV1 | undefined
+): KunRuntimeSettingsPatchV1 | undefined {
+  if (rawProviderListHadSglangProvider(parsed)) return migratedKun
+
+  const providerId = typeof migratedKun?.providerId === 'string' ? migratedKun.providerId.trim() : ''
+  const model = typeof migratedKun?.model === 'string' ? migratedKun.model.trim() : ''
+  const inheritedLegacyOllamaDefault =
+    (!providerId || providerId === OLLAMA_MODEL_PROVIDER_ID) &&
+    (!model || model === DEFAULT_OLLAMA_MODEL)
+  if (!inheritedLegacyOllamaDefault) return migratedKun
+
+  return {
+    ...migratedKun,
+    providerId: SGLANG_MODEL_PROVIDER_ID,
+    modelProviderAuthType: 'none',
+    model: DEFAULT_SGLANG_MODEL,
+    apiKey: '',
+    baseUrl: ''
+  }
+}
+
 export async function ensureWorkspaceRootExists(workspaceRoot: string): Promise<string> {
   const normalized = normalizeWorkspaceRoot(workspaceRoot)
   await mkdir(normalized, { recursive: true })
@@ -211,12 +246,13 @@ const defaultSettings = (): AppSettingsV1 => ({
 function buildMergedSettings(parsed: Partial<AppSettingsV1>): AppSettingsV1 {
   const migrated = migrateLegacyAppSettings(parsed)
   const defaults = defaultSettings()
+  const migratedKun = migrateLegacyOllamaDefaultKunPatch(parsed, migrated.agents?.kun)
   return {
     ...defaults,
     ...migrated,
     provider: mergeModelProviderSettings(defaults.provider, migrated.provider),
     agents: kunSettingsEnvelope(
-      mergeKunRuntimeSettings(getKunRuntimeSettings(defaults), migrated.agents?.kun)
+      mergeKunRuntimeSettings(getKunRuntimeSettings(defaults), migratedKun)
     ),
     log: { ...defaults.log, ...migrated.log },
     notifications: { ...defaults.notifications, ...migrated.notifications },
@@ -349,7 +385,7 @@ export class JsonSettingsStore {
     await ensureWriteWorkspaceRootsExist(normalized)
     await ensureClawChannelWorkspaceRootsExist(normalized)
     this.cache = normalized
-    if (sourcePath !== this.path) {
+    if (sourcePath !== this.path || raw.trim() !== serializeSettingsForDisk(normalized).trim()) {
       await this.save(normalized)
     }
     return this.cache

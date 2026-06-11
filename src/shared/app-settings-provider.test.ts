@@ -64,8 +64,8 @@ describe('model provider settings', () => {
     const provider = defaultModelProviderSettings()
 
     expect(provider.providers.map((item) => item.id)).toEqual([
-      OLLAMA_MODEL_PROVIDER_ID,
       SGLANG_MODEL_PROVIDER_ID,
+      OLLAMA_MODEL_PROVIDER_ID,
       'deepseek',
       CODEX_OAUTH_MODEL_PROVIDER_ID
     ])
@@ -83,7 +83,7 @@ describe('model provider settings', () => {
     })
   })
 
-  it('uses Ollama Gemma as the default Kun provider when none is selected', () => {
+  it('uses SGLang Gemma as the default Kun provider when none is selected', () => {
     const next = settings()
     next.provider.apiKey = ''
     next.provider.baseUrl = 'https://api.deepseek.com'
@@ -91,14 +91,14 @@ describe('model provider settings', () => {
     next.agents.kun = {
       ...defaultKunRuntimeSettings(),
       providerId: '',
-      model: DEFAULT_OLLAMA_MODEL,
+      model: DEFAULT_SGLANG_MODEL,
       modelProviderAuthType: 'none',
       baseUrl: ''
     }
     const runtime = resolveKunRuntimeSettings(next)
 
     expect(runtime.modelProviderAuthType).toBe('none')
-    expect(runtime.baseUrl).toBe(DEFAULT_OLLAMA_BASE_URL)
+    expect(runtime.baseUrl).toBe(DEFAULT_SGLANG_BASE_URL)
     expect(hasKunRuntimeModelCredentials(next)).toBe(true)
   })
 
